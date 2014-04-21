@@ -105,12 +105,12 @@ RequestProcessor = function(action, query, response) {
 	}
 
 
-	this.sendSymbolSearchResults = function(query, maxRecords, response) {
+	this.sendSymbolSearchResults = function(query, type, exchange, maxRecords, response) {
 		if (!query || !maxRecords) {
 			throw "wrong_query";
 		}
 
-		var result = symbolsDatabase.search(query, maxRecords);
+		var result = symbolsDatabase.search(query, type, exchange, maxRecords);
 
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(result));
@@ -234,7 +234,7 @@ RequestProcessor = function(action, query, response) {
 			this.sendSymbolInfo(query["symbol"], response);
 		}
 		else if (action == "/search") {
-			this.sendSymbolSearchResults(query["query"], query["limit"], response);
+			this.sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
 		else if (action == "/history") {
 			this.sendSymbolHistory(query["symbol"], query["from"], query["resolution"].toLowerCase(), response);

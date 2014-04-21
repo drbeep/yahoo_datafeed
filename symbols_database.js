@@ -202,14 +202,25 @@ function searchResultFromDatabaseItem(item) {
 
 
 
-exports.search = function (searchText, maxRecords) {
+exports.search = function (searchText, type, exchange, maxRecords) {
 	var MAX_SEARCH_RESULTS = !!maxRecords ? maxRecords : 20;
 
 	var results = [];
 
 	for (var i = 0; i < symbols.length; ++i) {
-		if (symbols[i].name.indexOf(searchText) == 0) {
-			results.push(searchResultFromDatabaseItem(symbols[i]));
+
+		var item = symbols[i];
+
+		if (type && type.length > 0 && item.type != type) {
+			continue;
+		}
+
+		if (exchange && exchange.length > 0 && item.exchange != exchange) {
+			continue;
+		}
+
+		if (item.name.indexOf(searchText) == 0) {
+			results.push(searchResultFromDatabaseItem(item));
 		}
 
 		if (results.length >= MAX_SEARCH_RESULTS) {
