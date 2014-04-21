@@ -83,7 +83,20 @@ RequestProcessor = function(action, query, response) {
 
 		var config = {
 			supports_search: true,
-			supports_group_request: false
+			supports_group_request: false,
+			exchanges: [
+				{value: "", name: "All Exchanges", desc: ""},
+				{value: "NYQ", name: "NYQ", desc: "NYQ"},
+				{value: "NMS", name: "NMS", desc: "NMS"},
+				{value: "PNK", name: "PNK", desc: "PNK"},
+				{value: "MCE", name: "MCE", desc: "MCE"},
+				{value: "NCM", name: "NCM", desc: "NCM"}
+			],
+			symbolsTypes: [
+				{name: "All types", value: ""},
+				{name: "Stock", value: "stock"},
+				{name: "Index", value: "index"}
+			]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
