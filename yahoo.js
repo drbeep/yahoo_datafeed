@@ -96,7 +96,8 @@ RequestProcessor = function(action, query, response) {
 				{name: "All types", value: ""},
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
-			]
+			],
+			supportedResolutions: [ "D", "W", "M" ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
