@@ -189,7 +189,7 @@ RequestProcessor = function(action, query, response) {
 	}
 
 
-	this.sendSymbolHistory = function(symbol, startDate, resolution, response) {
+	this.sendSymbolHistory = function(symbol, startDateTimestamp, resolution, response) {
 
 		var symbolInfo = symbolsDatabase.symbolInfo(symbol);
 
@@ -197,20 +197,21 @@ RequestProcessor = function(action, query, response) {
 			throw "unknown_symbol";
 		}
 
-		var now = new Date();
+		var requestLeftDate = new Date(startDateTimestamp * 1000);
+		console.log(requestLeftDate);
 
-		var year = now.getFullYear();
-		var month = now.getMonth();
-		var day = now.getDate();
+		var year = requestLeftDate.getFullYear();
+		var month = requestLeftDate.getMonth();
+		var day = requestLeftDate.getDate();
 
 		if (resolution != "d" && resolution != "w" && resolution != "m") {
-			throw "Unsupported resolution";
+			throw "Unsupported resolution: " + resolution;
 		}
 
 		var address = "ichart.finance.yahoo.com/table.csv?s=" + symbolInfo.name +
 			"&a=" + month +
 			"&b=" + day  +
-			"&c=" + (year - 1) +
+			"&c=" + year +
 			"&g=" + resolution +
 			"&ignore=.csv";
 
