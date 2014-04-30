@@ -97,7 +97,7 @@ RequestProcessor = function(action, query, response) {
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
 			],
-			supportedResolutions: [ "D", "W", "M" ]
+			supportedResolutions: [ "D", "2D", "3D", "W", "3W", "M", '6M' ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
@@ -175,6 +175,7 @@ RequestProcessor = function(action, query, response) {
 				"pricescale": pricescale,
 				"pointvalue": 1,
 				"timezone": "UTC",
+				"session": "0900-1630",
 				"has_intraday": false,
 				"has_no_volume": symbolInfo.type != "stock",
 				"ticker": _lastYahooResponse["ticker"],
