@@ -166,7 +166,6 @@ var symbols = [
 { name: "SU", description:"Suncor Energy Inc.", exchange:"NYQ", type:"stock" },
 { name: "T", description:"AT&T, Inc.", exchange:"NYQ", type:"stock" },
 { name: "TEG.AX", description:"Triangle Energy (Global) Limited", exchange:"ASX", type:"stock" },
-{ name: "TTNC", description:"Tecton Corp.", exchange:"", type:"stock" },
 { name: "TTW.V", description:"TIMES THREE WIRELESS INC", exchange:"VAN", type:"stock" },
 { name: "UA", description:"Under Armour, Inc.", exchange:"NYQ", type:"stock" },
 { name: "UCD.SG", description:"UC RESOURCES", exchange:"STU", type:"stock" },
@@ -195,7 +194,6 @@ function searchResultFromDatabaseItem(item) {
 		full_name: item.name,
 		description: item.description,
 		exchange: item.exchange,
-		params: [],
 		type: item.type
 	};
 }
