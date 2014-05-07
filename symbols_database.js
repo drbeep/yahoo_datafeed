@@ -1,9 +1,10 @@
 /*
 	This file is a node.js module intended for use in different UDF datafeeds.
 */
-
 //	This list should contain all the symbosl available through your datafeed.
 //	The current version is extremely incomplete (as it's just a sample): Yahoo has much more of them.
+
+
 var symbols = [
 { name: "^GDAXI", description:"DAX", exchange:"GER", type:"index" },
 { name: "^NSEI", description:"CNX NIFTY", exchange:"NSI", type:"index" },
@@ -15,7 +16,6 @@ var symbols = [
 { name: "ABBV", description:"AbbVie Inc.", exchange:"NYQ", type:"stock" },
 { name: "ABT", description:"Abbott Laboratories", exchange:"NYQ", type:"stock" },
 { name: "ABX", description:"Barrick Gold Corporation", exchange:"NYQ", type:"stock" },
-{ name: "ACDU", description:"Accredited Business Consolidators Corp.", exchange:"PNK", type:"stock" },
 { name: "ACHN", description:"Achillion Pharmaceuticals, Inc.", exchange:"NMS", type:"stock" },
 { name: "ACI", description:"Arch Coal Inc.", exchange:"NYQ", type:"stock" },
 { name: "ACN", description:"Accenture plc", exchange:"NYQ", type:"stock" },
@@ -42,7 +42,6 @@ var symbols = [
 { name: "ARIA", description:"Ariad Pharmaceuticals Inc.", exchange:"NMS", type:"stock" },
 { name: "ARNA", description:"Arena Pharmaceuticals, Inc.", exchange:"NMS", type:"stock" },
 { name: "ARR", description:"ARMOUR Residential REIT, Inc.", exchange:"NYQ", type:"stock" },
-{ name: "ATTY", description:"1-800-ATTORNEY Inc.", exchange:"PNK", type:"stock" },
 { name: "AUXL", description:"Auxilium Pharmaceuticals Inc.", exchange:"NMS", type:"stock" },
 { name: "AVGO", description:"Avago Technologies Limited", exchange:"NMS", type:"stock" },
 { name: "AVNR", description:"Avanir Pharmaceuticals, Inc.", exchange:"NMS", type:"stock" },
@@ -57,7 +56,6 @@ var symbols = [
 { name: "BBT", description:"BB&T Corporation", exchange:"NYQ", type:"stock" },
 { name: "BBY", description:"Best Buy Co., Inc.", exchange:"NYQ", type:"stock" },
 { name: "BIDU", description:"Baidu, Inc.", exchange:"NMS", type:"stock" },
-{ name: "BIEL", description:"BioElectronics Corporation", exchange:"PNK", type:"stock" },
 { name: "BIIB", description:"Biogen Idec Inc.", exchange:"NMS", type:"stock" },
 { name: "BK", description:"The Bank of New York Mellon Corporation", exchange:"NYQ", type:"stock" },
 { name: "BLK", description:"BlackRock, Inc.", exchange:"NYQ", type:"stock" },
@@ -98,20 +96,16 @@ var symbols = [
 { name: "DPM", description:"DCP Midstream Partners LP", exchange:"NYQ", type:"stock" },
 { name: "DRI", description:"Darden Restaurants, Inc.", exchange:"NYQ", type:"stock" },
 { name: "DRX.IR", description:"", exchange:"ISE", type:"stock" },
-{ name: "DRYN", description:"DRAYTON RICHDALE NEW", exchange:"PNK", type:"stock" },
 { name: "DRYS", description:"DryShips, Inc.", exchange:"NMS", type:"stock" },
-{ name: "DSCY", description:"Discovery Oil Ltd.", exchange:"PNK", type:"stock" },
 { name: "DV", description:"DeVry Education Group Inc.", exchange:"NYQ", type:"stock" },
 { name: "DVN", description:"Devon Energy Corporation", exchange:"NYQ", type:"stock" },
 { name: "EA", description:"Electronic Arts Inc.", exchange:"NMS", type:"stock" },
 { name: "EBAY", description:"eBay Inc.", exchange:"NMS", type:"stock" },
 { name: "EBIX", description:"Ebix Inc.", exchange:"NMS", type:"stock" },
-{ name: "ECRTF", description:"Colombia Crest Gold Corp.", exchange:"PNK", type:"stock" },
 { name: "ECYT", description:"Endocyte, Inc.", exchange:"NMS", type:"stock" },
 { name: "ED", description:"Consolidated Edison, Inc.", exchange:"NYQ", type:"stock" },
 { name: "EMC", description:"EMC Corporation", exchange:"NYQ", type:"stock" },
 { name: "ENT", description:"Global Eagle Entertainment Inc.", exchange:"NCM", type:"stock" },
-{ name: "ERBB", description:"Tranzbyte Corporation", exchange:"PNK", type:"stock" },
 { name: "ESI", description:"ITT Educational Services Inc.", exchange:"NYQ", type:"stock" },
 { name: "ESRX", description:"Express Scripts Holding Company", exchange:"NMS", type:"stock" },
 { name: "ETFC", description:"E*TRADE Financial Corporation", exchange:"NMS", type:"stock" },
@@ -120,17 +114,13 @@ var symbols = [
 { name: "EXPE", description:"Expedia Inc.", exchange:"NMS", type:"stock" },
 { name: "EZCH", description:"EZchip Semiconductor Ltd.", exchange:"NMS", type:"stock" },
 { name: "F", description:"Ford Motor Co.", exchange:"NYQ", type:"stock" },
-{ name: "FBEC", description:"Frontier Beverage Company, Inc.", exchange:"PNK", type:"stock" },
 { name: "FCEL", description:"FuelCell Energy Inc.", exchange:"NGM", type:"stock" },
 { name: "FRE.AX", description:"Freshtel Holdings Limited", exchange:"ASX", type:"stock" },
 { name: "GALE", description:"Galena Biopharma, Inc.", exchange:"NCM", type:"stock" },
-{ name: "GCMI", description:"Geos Communications, Inc.", exchange:"PNK", type:"stock" },
 { name: "GD", description:"General Dynamics Corp.", exchange:"NYQ", type:"stock" },
 { name: "GE", description:"General Electric Company", exchange:"NYQ", type:"stock" },
 { name: "GTAT", description:"GT Advanced Technologies Inc.", exchange:"NMS", type:"stock" },
 { name: "HD", description:"The Home Depot, Inc.", exchange:"NYQ", type:"stock" },
-{ name: "HIPCF", description:"HIP Energy Corp.", exchange:"PNK", type:"stock" },
-{ name: "HVYB", description:"Home Valley Bancorp Inc.", exchange:"PNK", type:"stock" },
 { name: "IBM", description:"International Business Machines Corporation", exchange:"NYQ", type:"stock" },
 { name: "INTC", description:"Intel Corporation", exchange:"NMS", type:"stock" },
 { name: "JPM", description:"JPMorgan Chase & Co.", exchange:"NYQ", type:"stock" },
@@ -152,16 +142,12 @@ var symbols = [
 { name: "OLED", description:"Universal Display Corp.", exchange:"NMS", type:"stock" },
 { name: "PLPE", description:"PeopleString Corporation", exchange:"", type:"stock" },
 { name: "PNRA", description:"Panera Bread Company", exchange:"NMS", type:"stock" },
-{ name: "PPJE", description:"PPJ Enterprise", exchange:"PNK", type:"stock" },
 { name: "PRAN", description:"Prana Biotechnology Limited", exchange:"NCM", type:"stock" },
 { name: "RAD", description:"Rite Aid Corporation", exchange:"NYQ", type:"stock" },
 { name: "SAM", description:"Boston Beer Co. Inc.", exchange:"NYQ", type:"stock" },
 { name: "SAN", description:"Banco Santander, S.A.", exchange:"NYQ", type:"stock" },
 { name: "SCTY", description:"SolarCity Corporation", exchange:"NMS", type:"stock" },
 { name: "SD", description:"SandRidge Energy, Inc.", exchange:"NYQ", type:"stock" },
-{ name: "SMXMF", description:"Samex Mining Corp.", exchange:"PNK", type:"stock" },
-{ name: "SPDE", description:"Speedus Corp.", exchange:"PNK", type:"stock" },
-{ name: "STCA", description:"Statmon Technologies Corp.", exchange:"PNK", type:"stock" },
 { name: "STZ", description:"Constellation Brands Inc.", exchange:"NYQ", type:"stock" },
 { name: "SU", description:"Suncor Energy Inc.", exchange:"NYQ", type:"stock" },
 { name: "T", description:"AT&T, Inc.", exchange:"NYQ", type:"stock" },
@@ -176,16 +162,13 @@ var symbols = [
 { name: "WFC", description:"Wells Fargo & Company", exchange:"NYQ", type:"stock" },
 { name: "WLT", description:"Walter Energy, Inc.", exchange:"NYQ", type:"stock" },
 { name: "XOM", description:"Exxon Mobil Corporation", exchange:"NYQ", type:"stock" },
-{ name: "YORK", description:"York Research Corp.", exchange:"PNK", type:"stock" },
-{ name: "ZNNC", description:"Zann Corp.", exchange:"PNK", type:"stock" }];
-
+];
 
 var symbolsMap = {};
 
 for (var i = 0; i < symbols.length; ++i) {
 	symbolsMap[symbols[i].name] = symbols[i];
 }
-
 
 
 function searchResultFromDatabaseItem(item) {
@@ -199,34 +182,26 @@ function searchResultFromDatabaseItem(item) {
 }
 
 
-
 exports.search = function (searchText, type, exchange, maxRecords) {
 	var MAX_SEARCH_RESULTS = !!maxRecords ? maxRecords : 50;
-
 	var results = [];
 	var queryIsEmpty = !searchText || searchText.length == 0;
 
 	for (var i = 0; i < symbols.length; ++i) {
-
 		var item = symbols[i];
-
 		if (type && type.length > 0 && item.type != type) {
 			continue;
 		}
-
 		if (exchange && exchange.length > 0 && item.exchange != exchange) {
 			continue;
 		}
-
 		if (queryIsEmpty || item.name.indexOf(searchText) == 0) {
 			results.push(searchResultFromDatabaseItem(item));
 		}
-
 		if (results.length >= MAX_SEARCH_RESULTS) {
 			break;
 		}
 	}
-
 	return results;
 }
 
@@ -235,6 +210,5 @@ exports.symbolInfo = function (symbolName) {
 	if (!symbolsMap.hasOwnProperty(symbolName)) {
 		return null;
 	}
-
 	return symbolsMap[symbolName];
 }

@@ -88,7 +88,6 @@ RequestProcessor = function(action, query, response) {
 				{value: "", name: "All Exchanges", desc: ""},
 				{value: "NYQ", name: "NYQ", desc: "NYQ"},
 				{value: "NMS", name: "NMS", desc: "NMS"},
-				{value: "PNK", name: "PNK", desc: "PNK"},
 				{value: "MCE", name: "MCE", desc: "MCE"},
 				{value: "NCM", name: "NCM", desc: "NCM"}
 			],
