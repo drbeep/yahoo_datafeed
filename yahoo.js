@@ -107,7 +107,7 @@ RequestProcessor = function(action, query, response) {
 
 
 	this.sendSymbolSearchResults = function(query, type, exchange, maxRecords, response) {
-		if (!query || !maxRecords) {
+		if (!maxRecords) {
 			throw "wrong_query";
 		}
 

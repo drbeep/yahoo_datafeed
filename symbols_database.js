@@ -201,9 +201,10 @@ function searchResultFromDatabaseItem(item) {
 
 
 exports.search = function (searchText, type, exchange, maxRecords) {
-	var MAX_SEARCH_RESULTS = !!maxRecords ? maxRecords : 20;
+	var MAX_SEARCH_RESULTS = !!maxRecords ? maxRecords : 50;
 
 	var results = [];
+	var queryIsEmpty = !searchText || searchText.length == 0;
 
 	for (var i = 0; i < symbols.length; ++i) {
 
@@ -217,7 +218,7 @@ exports.search = function (searchText, type, exchange, maxRecords) {
 			continue;
 		}
 
-		if (item.name.indexOf(searchText) == 0) {
+		if (queryIsEmpty || item.name.indexOf(searchText) == 0) {
 			results.push(searchResultFromDatabaseItem(item));
 		}
 
