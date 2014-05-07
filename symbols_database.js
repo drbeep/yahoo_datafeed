@@ -36,8 +36,6 @@ var symbols = [
 { name: "ANR", description:"Alpha Natural Resources, Inc.", exchange:"NYQ", type:"stock" },
 { name: "APA", description:"Apache Corp.", exchange:"NYQ", type:"stock" },
 { name: "APC", description:"Anadarko Petroleum Corporation", exchange:"NYQ", type:"stock" },
-{ name: "APPA", description:"AP Pharma Inc.", exchange:"", type:"stock" },
-{ name: "APPAD", description:"Heron Therapeutics, Inc.", exchange:"", type:"stock" },
 { name: "ARC", description:"ARC Document Solutions, Inc.", exchange:"NYQ", type:"stock" },
 { name: "ARIA", description:"Ariad Pharmaceuticals Inc.", exchange:"NMS", type:"stock" },
 { name: "ARNA", description:"Arena Pharmaceuticals, Inc.", exchange:"NMS", type:"stock" },
@@ -72,9 +70,7 @@ var symbols = [
 { name: "CII.TA", description:"", exchange:"TLV", type:"stock" },
 { name: "CNP", description:"CenterPoint Energy, Inc.", exchange:"NYQ", type:"stock" },
 { name: "COLE", description:"Cole Real Estate Investments, Inc.", exchange:"NYQ", type:"stock" },
-{ name: "COWID", description:"CoroWare, Inc.", exchange:"", type:"stock" },
 { name: "CSCO", description:"Cisco Systems, Inc.", exchange:"NMS", type:"stock" },
-{ name: "CXM", description:"Cardium Therapeutics Inc.", exchange:"", type:"stock" },
 { name: "D", description:"Dominion Resources, Inc.", exchange:"NYQ", type:"stock" },
 { name: "DAL", description:"Delta Air Lines Inc.", exchange:"NYQ", type:"stock" },
 { name: "DANG", description:"E-Commerce China Dangdang Inc.", exchange:"NYQ", type:"stock" },
@@ -140,7 +136,6 @@ var symbols = [
 { name: "NLY", description:"Annaly Capital Management, Inc.", exchange:"NYQ", type:"stock" },
 { name: "NUS", description:"Nu Skin Enterprises Inc.", exchange:"NYQ", type:"stock" },
 { name: "OLED", description:"Universal Display Corp.", exchange:"NMS", type:"stock" },
-{ name: "PLPE", description:"PeopleString Corporation", exchange:"", type:"stock" },
 { name: "PNRA", description:"Panera Bread Company", exchange:"NMS", type:"stock" },
 { name: "PRAN", description:"Prana Biotechnology Limited", exchange:"NCM", type:"stock" },
 { name: "RAD", description:"Rite Aid Corporation", exchange:"NYQ", type:"stock" },
@@ -163,12 +158,6 @@ var symbols = [
 { name: "WLT", description:"Walter Energy, Inc.", exchange:"NYQ", type:"stock" },
 { name: "XOM", description:"Exxon Mobil Corporation", exchange:"NYQ", type:"stock" },
 ];
-
-var symbolsMap = {};
-
-for (var i = 0; i < symbols.length; ++i) {
-	symbolsMap[symbols[i].name] = symbols[i];
-}
 
 
 function searchResultFromDatabaseItem(item) {
@@ -207,8 +196,18 @@ exports.search = function (searchText, type, exchange, maxRecords) {
 
 
 exports.symbolInfo = function (symbolName) {
-	if (!symbolsMap.hasOwnProperty(symbolName)) {
-		return null;
+
+	var data = symbolName.split(':');
+	var exchange = (data.length > 1 ? data[0] : "").toUpperCase();
+	var symbol = (data.length > 1 ? data[1] : symbolName).toUpperCase();
+
+	for (var i = 0; i < symbols.length; ++i) {
+		var item = symbols[i];
+
+		if (item.name == symbol && (exchange.length == 0 || exchange == item.exchange)) {
+			return item;
+		}
 	}
-	return symbolsMap[symbolName];
+
+	return null;
 }

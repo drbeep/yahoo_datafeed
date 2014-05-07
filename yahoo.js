@@ -135,7 +135,7 @@ RequestProcessor = function(action, query, response) {
 		var symbolInfo = symbolsDatabase.symbolInfo(symbolName);
 
 		if (symbolInfo == null) {
-			throw "unknown_symbol";
+			throw "unknown_symbol " + symbolName;
 		}
 
 		var address = "/instrument/1.0/" + encodeURIComponent(symbolInfo.name) + "/chartdata;type=quote;/json";
