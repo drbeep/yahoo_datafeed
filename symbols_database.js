@@ -4,6 +4,8 @@
 //	This list should contain all the symbosl available through your datafeed.
 //	The current version is extremely incomplete (as it's just a sample): Yahoo has much more of them.
 
+exports.sessionsDemoSymbol = "MOCK.SESSIONS";
+
 
 var symbols = [
 { name: "^GDAXI", description:"DAX", exchange:"GER", type:"index" },
@@ -101,7 +103,6 @@ var symbols = [
 { name: "ECYT", description:"Endocyte, Inc.", exchange:"NMS", type:"stock" },
 { name: "ED", description:"Consolidated Edison, Inc.", exchange:"NYQ", type:"stock" },
 { name: "EMC", description:"EMC Corporation", exchange:"NYQ", type:"stock" },
-{ name: "ENT", description:"Global Eagle Entertainment Inc.", exchange:"NCM", type:"stock" },
 { name: "ESI", description:"ITT Educational Services Inc.", exchange:"NYQ", type:"stock" },
 { name: "ESRX", description:"Express Scripts Holding Company", exchange:"NMS", type:"stock" },
 { name: "ETFC", description:"E*TRADE Financial Corporation", exchange:"NMS", type:"stock" },
@@ -111,8 +112,6 @@ var symbols = [
 { name: "EZCH", description:"EZchip Semiconductor Ltd.", exchange:"NMS", type:"stock" },
 { name: "F", description:"Ford Motor Co.", exchange:"NYQ", type:"stock" },
 { name: "FCEL", description:"FuelCell Energy Inc.", exchange:"NGM", type:"stock" },
-{ name: "FRE.AX", description:"Freshtel Holdings Limited", exchange:"ASX", type:"stock" },
-{ name: "GALE", description:"Galena Biopharma, Inc.", exchange:"NCM", type:"stock" },
 { name: "GD", description:"General Dynamics Corp.", exchange:"NYQ", type:"stock" },
 { name: "GE", description:"General Electric Company", exchange:"NYQ", type:"stock" },
 { name: "GTAT", description:"GT Advanced Technologies Inc.", exchange:"NMS", type:"stock" },
@@ -120,7 +119,6 @@ var symbols = [
 { name: "IBM", description:"International Business Machines Corporation", exchange:"NYQ", type:"stock" },
 { name: "INTC", description:"Intel Corporation", exchange:"NMS", type:"stock" },
 { name: "JPM", description:"JPMorgan Chase & Co.", exchange:"NYQ", type:"stock" },
-{ name: "KERX", description:"Keryx Biopharmaceuticals Inc.", exchange:"NCM", type:"stock" },
 { name: "KMP", description:"Kinder Morgan Energy Partners, L.P.", exchange:"NYQ", type:"stock" },
 { name: "KO", description:"The Coca-Cola Company", exchange:"NYQ", type:"stock" },
 { name: "LINE", description:"Linn Energy, LLC", exchange:"NMS", type:"stock" },
@@ -137,7 +135,6 @@ var symbols = [
 { name: "NUS", description:"Nu Skin Enterprises Inc.", exchange:"NYQ", type:"stock" },
 { name: "OLED", description:"Universal Display Corp.", exchange:"NMS", type:"stock" },
 { name: "PNRA", description:"Panera Bread Company", exchange:"NMS", type:"stock" },
-{ name: "PRAN", description:"Prana Biotechnology Limited", exchange:"NCM", type:"stock" },
 { name: "RAD", description:"Rite Aid Corporation", exchange:"NYQ", type:"stock" },
 { name: "SAM", description:"Boston Beer Co. Inc.", exchange:"NYQ", type:"stock" },
 { name: "SAN", description:"Banco Santander, S.A.", exchange:"NYQ", type:"stock" },
@@ -146,17 +143,16 @@ var symbols = [
 { name: "STZ", description:"Constellation Brands Inc.", exchange:"NYQ", type:"stock" },
 { name: "SU", description:"Suncor Energy Inc.", exchange:"NYQ", type:"stock" },
 { name: "T", description:"AT&T, Inc.", exchange:"NYQ", type:"stock" },
-{ name: "TEG.AX", description:"Triangle Energy (Global) Limited", exchange:"ASX", type:"stock" },
-{ name: "TTW.V", description:"TIMES THREE WIRELESS INC", exchange:"VAN", type:"stock" },
 { name: "UA", description:"Under Armour, Inc.", exchange:"NYQ", type:"stock" },
 { name: "UCD.SG", description:"UC RESOURCES", exchange:"STU", type:"stock" },
 { name: "USB", description:"U.S. Bancorp", exchange:"NYQ", type:"stock" },
-{ name: "VLG.MC", description:"", exchange:"MCE", type:"stock" },
 { name: "VZ", description:"Verizon Communications Inc.", exchange:"NYQ", type:"stock" },
 { name: "WDC", description:"Western Digital Corporation", exchange:"NMS", type:"stock" },
 { name: "WFC", description:"Wells Fargo & Company", exchange:"NYQ", type:"stock" },
 { name: "WLT", description:"Walter Energy, Inc.", exchange:"NYQ", type:"stock" },
 { name: "XOM", description:"Exxon Mobil Corporation", exchange:"NYQ", type:"stock" },
+
+{ name: exports.sessionsDemoSymbol, description:"Symbol with complex sessions", exchange:"MOCK", type:"stock" }
 ];
 
 

@@ -78,7 +78,6 @@ RequestProcessor = function(action, query, response) {
 		console.log(error);
 	}
 
-
 	this.sendConfig = function(response) {
 
 		var config = {
@@ -87,16 +86,14 @@ RequestProcessor = function(action, query, response) {
 			exchanges: [
 				{value: "", name: "All Exchanges", desc: ""},
 				{value: "NYQ", name: "NYQ", desc: "NYQ"},
-				{value: "NMS", name: "NMS", desc: "NMS"},
-				{value: "MCE", name: "MCE", desc: "MCE"},
-				{value: "NCM", name: "NCM", desc: "NCM"}
+				{value: "NMS", name: "NMS", desc: "NMS"}
 			],
 			symbolsTypes: [
 				{name: "All types", value: ""},
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
 			],
-			supportedResolutions: [ "D", "2D", "3D", "W", "3W", "M", '6M' ]
+			supportedResolutions: [ "15", "30", "D", "2D", "3D", "W", "3W", "M", '6M' ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
@@ -131,7 +128,38 @@ RequestProcessor = function(action, query, response) {
 	}
 
 
+	this._mockupSymbolInfo = function(symbolName, response) {
+		var info = {
+			"name": symbolsDatabase.sessionsDemoSymbol,
+			"exchange-traded": "MOCK",
+			"exchange-listed": "MOCK",
+			"timezone": "UTC",
+			"minmov": 1,
+			"minmov2": 0,
+			"pricescale": 100,
+			"pointvalue": 1,
+			"session": "0900-1630|1000-1400,1600-1900:2|1300-1700:3",
+			"has_intraday": true,
+			"intraday_multipliers": [15],
+			"has_dwm": false,
+			"has_no_volume": true,
+			"ticker": symbolsDatabase.sessionsDemoSymbol,
+			"description": "Mockup symbol with mockup data",
+			"type": "stock"
+		};
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(info));
+		response.end();
+	}
+
+
 	this.sendSymbolInfo = function(symbolName, response) {
+		if (symbolName.indexOf(symbolsDatabase.sessionsDemoSymbol) >= 0) {
+			this._mockupSymbolInfo(symbolName, response);
+			return;
+		}
+
 		var symbolInfo = symbolsDatabase.symbolInfo(symbolName);
 
 		if (symbolInfo == null) {
@@ -141,7 +169,7 @@ RequestProcessor = function(action, query, response) {
 		var address = "/instrument/1.0/" + encodeURIComponent(symbolInfo.name) + "/chartdata;type=quote;/json";
 		var that = this;
 
-		console.log(datafeedHost + address);
+		console.log("Requesting symbol info: " + datafeedHost + address);
 
 		httpGet(address, function(result) {
 			_pendingRequestType = "meta";
@@ -168,12 +196,11 @@ RequestProcessor = function(action, query, response) {
 				"name": symbolInfo.name,
 				"exchange-traded": _lastYahooResponse["Exchange-Name"],
 				"exchange-listed": _lastYahooResponse["Exchange-Name"],
-				"timezone": _lastYahooResponse["timezone"],
+				"timezone": "America/New_York",
 				"minmov": 1,
 				"minmov2": 0,
 				"pricescale": pricescale,
 				"pointvalue": 1,
-				"timezone": "UTC",
 				"session": "0900-1630",
 				"has_intraday": false,
 				"has_no_volume": symbolInfo.type != "stock",
@@ -189,7 +216,98 @@ RequestProcessor = function(action, query, response) {
 	}
 
 
+	this._mockupSymbolHistory = function(startDateTimestamp, resolution, response) {
+		var sessions = {
+			'default': [{
+					start: 9 * 60,
+					end: 16 * 60 + 30
+				}
+			],
+
+			//	Monday
+			'2':  [{
+					start: 10 * 60,
+					end: 14 * 60
+				}, {
+					start: 16 * 60,
+					end: 19 * 60
+				}
+			],
+
+			//	Tuesday
+			'3': [{
+					start: 13 * 60,
+					end: 17 * 60
+				}
+			]
+		};
+
+		var result = {
+			t: [], c: [], o: [], h: [], l: [], v: [],
+			s: "ok"
+		};
+
+		var today = new Date(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''))
+		today.setHours(0, 0, 0, 0);
+
+		var daysCount = parseInt(Math.max((today.valueOf()/1000 - startDateTimestamp) / (60 * 60 * 24), 1));
+		var median = 40;
+
+		for (var day = daysCount; day >= 0; day--) {
+			var date = new Date(today.valueOf() - day * 24 * 60 * 60 * 1000);
+			var dayIndex = date.getDay() + 1;
+
+			if (dayIndex == 1 || dayIndex == 7) {
+				continue;
+			}
+
+			var daySessions = sessions.hasOwnProperty(dayIndex)
+				? sessions[dayIndex]
+				: sessions['default'];
+
+			for (var i = 0; i < daySessions.length; ++i) {
+				var session = daySessions[i];
+
+				var barsCount = (session.end - session.start) / resolution;
+
+				for (var barIndex = 0; barIndex < barsCount; barIndex++) {
+					var barTime = date.valueOf() / 1000 + session.start * 60 + barIndex * resolution * 60 - date.getTimezoneOffset() * 60;
+
+					//console.log(barTime + ": " + new Date(barTime * 1000));
+
+					result.t.push(barTime);
+
+					var open = median + Math.random() * 4 - Math.random() * 4;
+					var close = median + Math.random() * 4 - Math.random() * 4;
+
+					result.o.push(open);
+					result.h.push(Math.max(open, close) + Math.random() * 4);
+					result.l.push(Math.min(open, close) - Math.random() * 4);
+					result.c.push(close);
+
+					median = close;
+
+					if (median < 10) {
+						median = 10;
+					}
+				}
+			}
+		}
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(result));
+		response.end();
+	}
+
+
 	this.sendSymbolHistory = function(symbol, startDateTimestamp, resolution, response) {
+
+		console.log("History request: " + symbol + ", " + resolution);
+
+		if (symbol.indexOf(symbolsDatabase.sessionsDemoSymbol) >= 0) {
+			this._mockupSymbolHistory(startDateTimestamp, resolution, response);
+			return;
+		}
 
 		var symbolInfo = symbolsDatabase.symbolInfo(symbol);
 
@@ -198,7 +316,6 @@ RequestProcessor = function(action, query, response) {
 		}
 
 		var requestLeftDate = new Date(startDateTimestamp * 1000);
-		console.log(requestLeftDate);
 
 		var year = requestLeftDate.getFullYear();
 		var month = requestLeftDate.getMonth();
@@ -215,7 +332,7 @@ RequestProcessor = function(action, query, response) {
 			"&g=" + resolution +
 			"&ignore=.csv";
 
-		console.log("Requesting " + address);
+		console.log("Requesting data: " + address);
 
 		var that = this;
 
