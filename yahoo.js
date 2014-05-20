@@ -131,7 +131,39 @@ RequestProcessor = function(action, query, response) {
 	}
 
 
+	this.sendMockupSymbolInfo = function(response) {
+		var info = {
+			"name": "TEST_EP_41~TICKER",
+			"exchange-traded": "NYQ",
+			"exchange-listed": "NYQ",
+			"timezone": "NYQ",
+			"minmov": 1,
+			"minmov2": 0,
+			"pricescale": 100,
+			"pointvalue": 1,
+			"timezone": "UTC",
+			"session": "0900-1630",
+			"has_intraday": false,
+			"has_no_volume": false,
+			"ticker": "LYG",
+			"description": "Mockup symbol to test CQG issue",
+			"type": "stock"
+		};
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(info));
+		response.end();
+	}
+
+
 	this.sendSymbolInfo = function(symbolName, response) {
+
+		if (symbolName.indexOf("TEST2") >= 0) {
+			this.sendMockupSymbolInfo(response);
+			return
+		}
+
+
 		var symbolInfo = symbolsDatabase.symbolInfo(symbolName);
 
 		if (symbolInfo == null) {
