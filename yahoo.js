@@ -70,7 +70,7 @@ function convertYahooHistoryToUDFFormat(data) {
 function convertYahooQuotesToUDFFormat(tickersMap, data) {
 	var result = { s: "ok", d: [] };
 	if (!data.query.results) {
-		console.log("ERROR: empty quotes response");
+		console.log("ERROR: empty quotes response: " + JSON.stringify(data));
 		return result;
 	}
 	var quotes = [].concat(data.query.results.quote);
@@ -93,26 +93,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 				low_price: quote.DaysLow,
 				open_price: quote.Open,
 				prev_close_price: quote.PreviousClose,
-
-				// I'm not sure about this values
-				current_session: "market",
-				fractional: false,
-				minmov: 1,
-				minmove2: 0,
 				original_name: longName,
-				pro_name: longName,
-				pricescale: 100,
-				symbol_status: "realtime",
-				type: "stock",
-				update_mode: "streaming",
-				legs: undefined,
-				ask_size: 0,
-				bid_size: 0,
-				fundamental_data: false,
-				base_name: [quote.Symbol],
-				listed_exchange: quote.StockExchange,
-				open_time: undefined,
-				series_data: undefined
 			}
 		});
 	});
