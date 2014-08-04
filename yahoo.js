@@ -67,6 +67,56 @@ function convertYahooHistoryToUDFFormat(data) {
 	return result;
 }
 
+function convertYahooQuotesToUDFFormat(data) {
+	var result = { s: "ok", d: [] };
+	if (!data.query.results) {
+		console.log("ERROR: empty quotes response");
+		return result;
+	}
+	var quotes = [].concat(data.query.results.quote);
+	quotes.forEach(function(quote) {
+		var longName = quote.StockExchange + ":" + quote.Symbol;
+		result.d.push({
+			n: longName,
+			v: {
+				ch: quote.ChangeRealtime || quote.Change,
+				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
+				lp: quote.LastTradePriceOnly,
+				short_name: quote.Symbol,
+				description: quote.Name,
+				exchange: quote.StockExchange,
+				volume: quote.Volume,
+				ask: quote.AskRealtime,
+				bid: quote.BidRealtime,
+				high_price: quote.DaysHigh,
+				low_price: quote.DaysLow,
+				open_price: quote.Open,
+				prev_close_price: quote.PreviousClose,
+
+				// I'm not sure about this values
+				current_session: "market",
+				fractional: false,
+				minmov: 1,
+				minmove2: 0,
+				original_name: longName,
+				pro_name: longName,
+				pricescale: 100,
+				symbol_status: "realtime",
+				type: "stock",
+				update_mode: "streaming",
+				legs: undefined,
+				ask_size: 0,
+				bid_size: 0,
+				fundamental_data: false,
+				base_name: [quote.Symbol],
+				listed_exchange: quote.StockExchange,
+				open_time: undefined,
+				series_data: undefined
+			}
+		});
+	});
+	return result;
+}
 
 RequestProcessor = function(action, query, response) {
 
@@ -166,8 +216,8 @@ RequestProcessor = function(action, query, response) {
 
 			var info = {
 				"name": symbolInfo.name,
-				"exchange-traded": _lastYahooResponse["Exchange-Name"],
-				"exchange-listed": _lastYahooResponse["Exchange-Name"],
+				"exchange-traded": symbolInfo.exchange,
+				"exchange-listed": symbolInfo.exchange,
 				"timezone": _lastYahooResponse["timezone"],
 				"minmov": 1,
 				"minmov2": 0,
@@ -177,7 +227,7 @@ RequestProcessor = function(action, query, response) {
 				"session": "0900-1630",
 				"has_intraday": false,
 				"has_no_volume": symbolInfo.type != "stock",
-				"ticker": _lastYahooResponse["ticker"],
+				"ticker": _lastYahooResponse["ticker"].toUpperCase(),
 				"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
 				"type": symbolInfo.type
 			};
@@ -226,6 +276,36 @@ RequestProcessor = function(action, query, response) {
 		});
 	}
 
+	this.sendQuotes = function(symbolsString, fields, response) {
+		var symbols = symbolsString.split(",");
+		var woExchange = [].concat(symbols).map(function(symbol) { return symbol.replace(/.*:(.*)/, "$1"); });
+
+		yql = "select * from yahoo.finance.quotes where symbol in ('" + woExchange.join("','") + "')";
+		console.log("Quotes query: " + yql);
+
+		var options = {
+			host: "query.yahooapis.com",
+			path: "/v1/public/yql?q=" + encodeURIComponent(yql)
+			   	+ "&format=json"
+				+ "&env=store://datatables.org/alltableswithkeys",
+		};
+		// for debug purposes
+		// console.log(options.host + options.path);
+
+		http.request(options, function(res) {
+			var result = '';
+
+			res.on('data', function (chunk) {
+				result += chunk;
+			});
+
+			res.on('end', function () {
+				response.writeHead(200, defaultResponseHeader);
+				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(JSON.parse(result))));
+				response.end();
+			});
+		}).end();
+	}
 
 	try
 	{
@@ -240,6 +320,9 @@ RequestProcessor = function(action, query, response) {
 		}
 		else if (action == "/history") {
 			this.sendSymbolHistory(query["symbol"], query["from"], query["resolution"].toLowerCase(), response);
+		}
+		else if (action == "/quotes") {
+			this.sendQuotes(query["symbols"], query["fields"], response);
 		}
 		else {
 			throw "wrong_request_format";
