@@ -67,7 +67,7 @@ function convertYahooHistoryToUDFFormat(data) {
 	return result;
 }
 
-function convertYahooQuotesToUDFFormat(data) {
+function convertYahooQuotesToUDFFormat(tickersMap, data) {
 	var result = { s: "ok", d: [] };
 	if (!data.query.results) {
 		console.log("ERROR: empty quotes response");
@@ -75,9 +75,10 @@ function convertYahooQuotesToUDFFormat(data) {
 	}
 	var quotes = [].concat(data.query.results.quote);
 	quotes.forEach(function(quote) {
+		var ticker = tickersMap[quote.symbol];
 		var longName = quote.StockExchange + ":" + quote.Symbol;
 		result.d.push({
-			n: longName,
+			n: ticker,
 			v: {
 				ch: quote.ChangeRealtime || quote.Change,
 				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
@@ -276,11 +277,16 @@ RequestProcessor = function(action, query, response) {
 		});
 	}
 
-	this.sendQuotes = function(symbolsString, fields, response) {
-		var symbols = symbolsString.split(",");
-		var woExchange = [].concat(symbols).map(function(symbol) { return symbol.replace(/.*:(.*)/, "$1"); });
+	this.sendQuotes = function(tickersString, fields, response) {
+		var tickersMap = {}; // maps YQL symbol to ticker 
 
-		yql = "select * from yahoo.finance.quotes where symbol in ('" + woExchange.join("','") + "')";
+		var tickers = tickersString.split(",");
+		[].concat(tickers).forEach(function(ticker) {
+			var yqlSymbol = ticker.replace(/.*:(.*)/, "$1");
+			tickersMap[yqlSymbol] = ticker;
+		});
+
+		var yql = "select * from yahoo.finance.quotes where symbol in ('" + Object.keys(tickersMap).join("','") + "')";
 		console.log("Quotes query: " + yql);
 
 		var options = {
@@ -301,7 +307,7 @@ RequestProcessor = function(action, query, response) {
 
 			res.on('end', function () {
 				response.writeHead(200, defaultResponseHeader);
-				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(JSON.parse(result))));
+				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(tickersMap, JSON.parse(result))));
 				response.end();
 			});
 		}).end();
