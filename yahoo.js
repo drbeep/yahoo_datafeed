@@ -137,10 +137,12 @@ RequestProcessor = function(action, query, response) {
 			supports_group_request: false,
 			exchanges: [
 				{value: "", name: "All Exchanges", desc: ""},
-				{value: "NYQ", name: "NYQ", desc: "NYQ"},
-				{value: "NMS", name: "NMS", desc: "NMS"},
-				{value: "MCE", name: "MCE", desc: "MCE"},
-				{value: "NCM", name: "NCM", desc: "NCM"}
+				{value: "XETRA", name: "XETRA", desc: "XETRA"},
+				{value: "NSE", name: "NSE", desc: "NSE"},
+				{value: "NasdaqNM", name: "NasdaqNM", desc: "NasdaqNM"},
+				{value: "NYSE", name: "NYSE", desc: "NYSE"},
+				{value: "CDNX", name: "CDNX", desc: "CDNX"},
+				{value: "Stuttgart", name: "Stuttgart", desc: "Stuttgart"},
 			],
 			symbolsTypes: [
 				{name: "All types", value: ""},
