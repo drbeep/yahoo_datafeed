@@ -204,7 +204,7 @@ exports.symbolInfo = function (symbolName) {
 	for (var i = 0; i < symbols.length; ++i) {
 		var item = symbols[i];
 
-		if (item.name == symbol && (exchange.length == 0 || exchange == item.exchange)) {
+		if (item.name.toUpperCase() == symbol && (exchange.length == 0 || exchange == item.exchange.toUpperCase())) {
 			return item;
 		}
 	}
