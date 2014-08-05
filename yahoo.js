@@ -67,35 +67,47 @@ function convertYahooHistoryToUDFFormat(data) {
 	return result;
 }
 
-function convertYahooQuotesToUDFFormat(tickersMap, data) {
+function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
 	var result = { s: "ok", d: [] };
 	if (!data.query.results) {
 		console.log("ERROR: empty quotes response: " + JSON.stringify(data));
 		return result;
 	}
-	var quotes = [].concat(data.query.results.quote);
-	quotes.forEach(function(quote) {
+
+	[].concat(data.query.results.quote).forEach(function(quote) {
+		var supportedFields = {
+			ch: quote.ChangeRealtime || quote.Change,
+			chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
+
+			short_name: quote.Symbol,
+			exchange: quote.StockExchange,
+			original_name: quote.StockExchange + ":" + quote.Symbol,
+			description: quote.Name,
+
+			lp: quote.LastTradePriceOnly,
+			ask: quote.AskRealtime,
+			bid: quote.BidRealtime,
+
+			open_price: quote.Open,
+			high_price: quote.DaysHigh,
+			low_price: quote.DaysLow,
+			prev_close_price: quote.PreviousClose,
+			volume: quote.Volume,
+		};
+
 		var ticker = tickersMap[quote.symbol];
-		var longName = quote.StockExchange + ":" + quote.Symbol;
-		result.d.push({
-			n: ticker,
-			v: {
-				ch: quote.ChangeRealtime || quote.Change,
-				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
-				lp: quote.LastTradePriceOnly,
-				short_name: quote.Symbol,
-				description: quote.Name,
-				exchange: quote.StockExchange,
-				volume: quote.Volume,
-				ask: quote.AskRealtime,
-				bid: quote.BidRealtime,
-				high_price: quote.DaysHigh,
-				low_price: quote.DaysLow,
-				open_price: quote.Open,
-				prev_close_price: quote.PreviousClose,
-				original_name: longName,
-			}
-		});
+		var quoteResult = { n: ticker, v: {} };
+		if (fields.length > 0) {
+			fields.forEach(function(field) {
+				var fieldValue = supportedFields[field];
+				if (fieldValue) {
+					quoteResult.v[field] = fieldValue;
+				};
+			});
+		} else {
+			quoteResult.v = supportedFields;
+		}
+		result.d.push(quoteResult);
 	});
 	return result;
 }
@@ -281,6 +293,8 @@ RequestProcessor = function(action, query, response) {
 		// for debug purposes
 		// console.log(options.host + options.path);
 
+		var fieldsArray = fields ? fields.split(",") : [];
+
 		http.request(options, function(res) {
 			var result = '';
 
@@ -290,7 +304,8 @@ RequestProcessor = function(action, query, response) {
 
 			res.on('end', function () {
 				response.writeHead(200, defaultResponseHeader);
-				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(tickersMap, JSON.parse(result))));
+				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(
+						tickersMap, fieldsArray, JSON.parse(result))));
 				response.end();
 			});
 		}).end();
