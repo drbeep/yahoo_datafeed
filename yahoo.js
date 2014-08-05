@@ -68,13 +68,21 @@ function convertYahooHistoryToUDFFormat(data) {
 }
 
 function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
-	var result = { s: "ok", d: [] };
-	if (!data.query.results) {
+	var result = [];
+	if (!data.query || !data.query.results) {
 		console.log("ERROR: empty quotes response: " + JSON.stringify(data));
 		return result;
 	}
 
 	[].concat(data.query.results.quote).forEach(function(quote) {
+		var ticker = tickersMap[quote.symbol];
+
+		// this field is an error token
+		if (quote["ErrorIndicationreturnedforsymbolchangedinvalid"]) {
+			result.push({ s: "error", n: ticker, v: {} });
+			return;
+		}
+
 		var supportedFields = {
 			ch: quote.ChangeRealtime || quote.Change,
 			chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
@@ -95,8 +103,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
 			volume: quote.Volume,
 		};
 
-		var ticker = tickersMap[quote.symbol];
-		var quoteResult = { n: ticker, v: {} };
+		var quoteResult = { s: "ok", n: ticker, v: {} };
 		if (fields.length > 0) {
 			fields.forEach(function(field) {
 				var fieldValue = supportedFields[field];
@@ -107,7 +114,8 @@ function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
 		} else {
 			quoteResult.v = supportedFields;
 		}
-		result.d.push(quoteResult);
+
+		result.push(quoteResult);
 	});
 	return result;
 }
