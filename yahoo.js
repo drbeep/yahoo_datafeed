@@ -67,7 +67,7 @@ function convertYahooHistoryToUDFFormat(data) {
 	return result;
 }
 
-function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
+function convertYahooQuotesToUDFFormat(tickersMap, data) {
 	if (!data.query || !data.query.results) {
 		var errmsg = "ERROR: empty quotes response: " + JSON.stringify(data);
 		console.log(errmsg);
@@ -84,39 +84,29 @@ function convertYahooQuotesToUDFFormat(tickersMap, fields, data) {
 			return;
 		}
 
-		var supportedFields = {
-			ch: quote.ChangeRealtime || quote.Change,
-			chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
+		result.d.push({
+		   	s: "ok",
+			n: ticker,
+			v: {
+				ch: quote.ChangeRealtime || quote.Change,
+				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
 
-			short_name: quote.Symbol,
-			exchange: quote.StockExchange,
-			original_name: quote.StockExchange + ":" + quote.Symbol,
-			description: quote.Name,
+				short_name: quote.Symbol,
+				exchange: quote.StockExchange,
+				original_name: quote.StockExchange + ":" + quote.Symbol,
+				description: quote.Name,
 
-			lp: quote.LastTradePriceOnly,
-			ask: quote.AskRealtime,
-			bid: quote.BidRealtime,
+				lp: quote.LastTradePriceOnly,
+				ask: quote.AskRealtime,
+				bid: quote.BidRealtime,
 
-			open_price: quote.Open,
-			high_price: quote.DaysHigh,
-			low_price: quote.DaysLow,
-			prev_close_price: quote.PreviousClose,
-			volume: quote.Volume,
-		};
-
-		var quoteResult = { s: "ok", n: ticker, v: {} };
-		if (fields.length > 0) {
-			fields.forEach(function(field) {
-				var fieldValue = supportedFields[field];
-				if (fieldValue) {
-					quoteResult.v[field] = fieldValue;
-				};
-			});
-		} else {
-			quoteResult.v = supportedFields;
-		}
-
-		result.d.push(quoteResult);
+				open_price: quote.Open,
+				high_price: quote.DaysHigh,
+				low_price: quote.DaysLow,
+				prev_close_price: quote.PreviousClose,
+				volume: quote.Volume,
+			}
+	   	});
 	});
 	return result;
 }
@@ -281,7 +271,7 @@ RequestProcessor = function(action, query, response) {
 		});
 	}
 
-	this.sendQuotes = function(tickersString, fields, response) {
+	this.sendQuotes = function(tickersString, response) {
 		var tickersMap = {}; // maps YQL symbol to ticker 
 
 		var tickers = tickersString.split(",");
@@ -302,8 +292,6 @@ RequestProcessor = function(action, query, response) {
 		// for debug purposes
 		// console.log(options.host + options.path);
 
-		var fieldsArray = fields ? fields.split(",") : [];
-
 		http.request(options, function(res) {
 			var result = '';
 
@@ -314,7 +302,7 @@ RequestProcessor = function(action, query, response) {
 			res.on('end', function () {
 				response.writeHead(200, defaultResponseHeader);
 				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(
-						tickersMap, fieldsArray, JSON.parse(result))));
+						tickersMap, JSON.parse(result))));
 				response.end();
 			});
 		}).end();
@@ -335,7 +323,7 @@ RequestProcessor = function(action, query, response) {
 			this.sendSymbolHistory(query["symbol"], query["from"], query["resolution"].toLowerCase(), response);
 		}
 		else if (action == "/quotes") {
-			this.sendQuotes(query["symbols"], query["fields"], response);
+			this.sendQuotes(query["symbols"], response);
 		}
 		else {
 			throw "wrong_request_format";
