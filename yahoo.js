@@ -161,7 +161,7 @@ RequestProcessor = function(action, query, response) {
 			color: ["red", "blue", "green", "red", "blue", "green"],
 			text: ["Today", "4 days back", "7 days back + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "7 days back once again", "15 days back", "30 days back"],
 			label: ["A", "B", "CORE", "D", "EURO", "F"],
-			labelFontColor: ["lime", "white", "red", "#FFFFFF", "white", "#000"],
+			labelFontColor: ["white", "white", "red", "#FFFFFF", "white", "#000"],
 			minSize: [14, 28, 7, 40, 7, 14]
 		};
 
