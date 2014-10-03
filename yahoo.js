@@ -127,6 +127,7 @@ RequestProcessor = function(action, query, response) {
 		var config = {
 			supports_search: true,
 			supports_group_request: false,
+			supports_marks: true,
 			exchanges: [
 				{value: "", name: "All Exchanges", desc: ""},
 				{value: "XETRA", name: "XETRA", desc: "XETRA"},
@@ -146,6 +147,26 @@ RequestProcessor = function(action, query, response) {
 
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(config));
+		response.end();
+	}
+
+
+	this.sendMarks = function(response) {
+		var now = new Date().valueOf() / 1000;
+		var day = 60 * 60 * 24;
+
+		var marks = {
+			id: [0, 1, 2, 3, 4, 5],
+			time: [now, now - day * 4, now - day * 7, now - day * 7, now - day * 15, now - day * 30],
+			color: ["red", "blue", "green", "red", "blue", "green"],
+			text: ["Today", "4 days back", "7 days back + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "7 days back once again", "15 days back", "30 days back"],
+			label: ["A", "B", "CORE", "D", "EURO", "F"],
+			labelFontColor: ["lime", "white", "red", "#FFFFFF", "white", "#000"],
+			minSize: [14, 28, 7, 40, 7, 14]
+		};
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(marks));
 		response.end();
 	}
 
@@ -324,6 +345,9 @@ RequestProcessor = function(action, query, response) {
 		}
 		else if (action == "/quotes") {
 			this.sendQuotes(query["symbols"], response);
+		}
+		else if (action == "/marks") {
+			this.sendMarks(response);
 		}
 		else {
 			throw "wrong_request_format";
