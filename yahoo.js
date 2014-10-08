@@ -67,6 +67,49 @@ function convertYahooHistoryToUDFFormat(data) {
 	return result;
 }
 
+function convertYahooQuotesToUDFFormat(tickersMap, data) {
+	if (!data.query || !data.query.results) {
+		var errmsg = "ERROR: empty quotes response: " + JSON.stringify(data);
+		console.log(errmsg);
+		return { s: "error", errmsg: errmsg };
+	}
+
+	var result = { s: "ok", d: [] };
+	[].concat(data.query.results.quote).forEach(function(quote) {
+		var ticker = tickersMap[quote.symbol];
+
+		// this field is an error token
+		if (quote["ErrorIndicationreturnedforsymbolchangedinvalid"]) {
+			result.d.push({ s: "error", n: ticker, v: {} });
+			return;
+		}
+
+		result.d.push({
+		   	s: "ok",
+			n: ticker,
+			v: {
+				ch: quote.ChangeRealtime || quote.Change,
+				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
+
+				short_name: quote.Symbol,
+				exchange: quote.StockExchange,
+				original_name: quote.StockExchange + ":" + quote.Symbol,
+				description: quote.Name,
+
+				lp: quote.LastTradePriceOnly,
+				ask: quote.AskRealtime,
+				bid: quote.BidRealtime,
+
+				open_price: quote.Open,
+				high_price: quote.DaysHigh,
+				low_price: quote.DaysLow,
+				prev_close_price: quote.PreviousClose,
+				volume: quote.Volume,
+			}
+	   	});
+	});
+	return result;
+}
 
 RequestProcessor = function(action, query, response) {
 
@@ -83,21 +126,46 @@ RequestProcessor = function(action, query, response) {
 		var config = {
 			supports_search: true,
 			supports_group_request: false,
+			supports_marks: true,
 			exchanges: [
 				{value: "", name: "All Exchanges", desc: ""},
-				{value: "NYQ", name: "NYQ", desc: "NYQ"},
-				{value: "NMS", name: "NMS", desc: "NMS"}
+				{value: "XETRA", name: "XETRA", desc: "XETRA"},
+				{value: "NSE", name: "NSE", desc: "NSE"},
+				{value: "NasdaqNM", name: "NasdaqNM", desc: "NasdaqNM"},
+				{value: "NYSE", name: "NYSE", desc: "NYSE"},
+				{value: "CDNX", name: "CDNX", desc: "CDNX"},
+				{value: "Stuttgart", name: "Stuttgart", desc: "Stuttgart"},
 			],
 			symbolsTypes: [
 				{name: "All types", value: ""},
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
 			],
-			supportedResolutions: [ "15", "30", "D", "2D", "3D", "W", "3W", "M", '6M' ]
+			supportedResolutions: [ "5", "10", "15", "30", "D", "2D", "3D", "W", "3W", "M", '6M' ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(config));
+		response.end();
+	}
+
+
+	this.sendMarks = function(response) {
+		var now = new Date().valueOf() / 1000;
+		var day = 60 * 60 * 24;
+
+		var marks = {
+			id: [0, 1, 2, 3, 4, 5],
+			time: [now, now - day * 4, now - day * 7, now - day * 7, now - day * 15, now - day * 30],
+			color: ["red", "blue", "green", "red", "blue", "green"],
+			text: ["Today", "4 days back", "7 days back + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "7 days back once again", "15 days back", "30 days back"],
+			label: ["A", "B", "CORE", "D", "EURO", "F"],
+			labelFontColor: ["white", "white", "red", "#FFFFFF", "white", "#000"],
+			minSize: [14, 28, 7, 40, 7, 14]
+		};
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(marks));
 		response.end();
 	}
 
@@ -140,8 +208,10 @@ RequestProcessor = function(action, query, response) {
 			"pointvalue": 1,
 			"session": "0900-1630|1000-1400,1600-1900:2|1300-1700:3",
 			"has_intraday": true,
-			"intraday_multipliers": [15],
-			"has_dwm": false,
+			"intraday_multipliers": ["5", "10", "15"],
+			"supported_resolutions": ["5", "10", "15", "W"],
+			"has_weekly_and_monthly": true,
+			"has_dwm": true,
 			"has_no_volume": true,
 			"ticker": symbolsDatabase.sessionsDemoSymbol,
 			"description": "Mockup symbol with mockup data",
@@ -194,17 +264,17 @@ RequestProcessor = function(action, query, response) {
 
 			var info = {
 				"name": symbolInfo.name,
-				"exchange-traded": _lastYahooResponse["Exchange-Name"],
-				"exchange-listed": _lastYahooResponse["Exchange-Name"],
+				"exchange-traded": symbolInfo.exchange,
+				"exchange-listed": symbolInfo.exchange,
 				"timezone": "America/New_York",
 				"minmov": 1,
 				"minmov2": 0,
 				"pricescale": pricescale,
 				"pointvalue": 1,
-				"session": "0900-1630",
+				"session": "0930-1630",
 				"has_intraday": false,
 				"has_no_volume": symbolInfo.type != "stock",
-				"ticker": _lastYahooResponse["ticker"],
+				"ticker": _lastYahooResponse["ticker"].toUpperCase(),
 				"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
 				"type": symbolInfo.type
 			};
@@ -213,6 +283,52 @@ RequestProcessor = function(action, query, response) {
 			response.write(JSON.stringify(info));
 			response.end();
 		});
+	}
+
+
+	this._mockupWSymbolHistory = function(startDateTimestamp, response) {
+		var today = new Date(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''))
+		today.setHours(0, 0, 0, 0);
+
+		var daysCount = parseInt(Math.max((today.valueOf()/1000 - startDateTimestamp) / (60 * 60 * 24), 1));
+		var weeksCount = parseInt(daysCount / 7);
+
+		var msPerDay =  24 * 60 * 60 * 1000;
+		var monday = today - ((today.getDay() % 6) - 1) * msPerDay;
+		monday -= (weeksCount * msPerDay * 7);
+
+
+		var result = {
+			t: [], c: [], o: [], h: [], l: [], v: [],
+			s: "ok"
+		};
+
+		var median = 40;
+
+		while (monday < today) {
+			result.t.push(monday / 1000);
+
+			var open = median + Math.random() * 4 - Math.random() * 4;
+			var close = median + Math.random() * 4 - Math.random() * 4;
+
+			result.o.push(open);
+			result.h.push(Math.max(open, close) + Math.random() * 4);
+			result.l.push(Math.min(open, close) - Math.random() * 4);
+			result.c.push(close);
+
+			median = close;
+
+			if (median < 10) {
+				median = 10;
+			}
+
+			monday += 7 * msPerDay;
+		}
+
+
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(result));
+		response.end();
 	}
 
 
@@ -225,7 +341,7 @@ RequestProcessor = function(action, query, response) {
 			],
 
 			//	Monday
-			'2':  [{
+			2:  [{
 					start: 10 * 60,
 					end: 14 * 60
 				}, {
@@ -235,7 +351,7 @@ RequestProcessor = function(action, query, response) {
 			],
 
 			//	Tuesday
-			'3': [{
+			3: [{
 					start: 13 * 60,
 					end: 17 * 60
 				}
@@ -267,10 +383,10 @@ RequestProcessor = function(action, query, response) {
 
 			for (var i = 0; i < daySessions.length; ++i) {
 				var session = daySessions[i];
-
 				var barsCount = (session.end - session.start) / resolution;
 
 				for (var barIndex = 0; barIndex < barsCount; barIndex++) {
+
 					var barTime = date.valueOf() / 1000 + session.start * 60 + barIndex * resolution * 60 - date.getTimezoneOffset() * 60;
 
 					//console.log(barTime + ": " + new Date(barTime * 1000));
@@ -305,7 +421,13 @@ RequestProcessor = function(action, query, response) {
 		console.log("History request: " + symbol + ", " + resolution);
 
 		if (symbol.indexOf(symbolsDatabase.sessionsDemoSymbol) >= 0) {
-			this._mockupSymbolHistory(startDateTimestamp, resolution, response);
+
+			if (resolution.indexOf("w") >= 0) {
+				this._mockupWSymbolHistory(startDateTimestamp, response);
+			}
+			else {
+				this._mockupSymbolHistory(startDateTimestamp, resolution, response);
+			}
 			return;
 		}
 
@@ -343,6 +465,42 @@ RequestProcessor = function(action, query, response) {
 		});
 	}
 
+	this.sendQuotes = function(tickersString, response) {
+		var tickersMap = {}; // maps YQL symbol to ticker
+
+		var tickers = tickersString.split(",");
+		[].concat(tickers).forEach(function(ticker) {
+			var yqlSymbol = ticker.replace(/.*:(.*)/, "$1");
+			tickersMap[yqlSymbol] = ticker;
+		});
+
+		var yql = "select * from yahoo.finance.quotes where symbol in ('" + Object.keys(tickersMap).join("','") + "')";
+		console.log("Quotes query: " + yql);
+
+		var options = {
+			host: "query.yahooapis.com",
+			path: "/v1/public/yql?q=" + encodeURIComponent(yql)
+			   	+ "&format=json"
+				+ "&env=store://datatables.org/alltableswithkeys",
+		};
+		// for debug purposes
+		// console.log(options.host + options.path);
+
+		http.request(options, function(res) {
+			var result = '';
+
+			res.on('data', function (chunk) {
+				result += chunk;
+			});
+
+			res.on('end', function () {
+				response.writeHead(200, defaultResponseHeader);
+				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(
+						tickersMap, JSON.parse(result))));
+				response.end();
+			});
+		}).end();
+	}
 
 	try
 	{
@@ -357,6 +515,12 @@ RequestProcessor = function(action, query, response) {
 		}
 		else if (action == "/history") {
 			this.sendSymbolHistory(query["symbol"], query["from"], query["resolution"].toLowerCase(), response);
+		}
+		else if (action == "/quotes") {
+			this.sendQuotes(query["symbols"], response);
+		}
+		else if (action == "/marks") {
+			this.sendMarks(response);
 		}
 		else {
 			throw "wrong_request_format";
@@ -374,13 +538,32 @@ RequestProcessor = function(action, query, response) {
 //		/search?query=B&limit=10
 //		/history?symbol=C&from=DATE&resolution=E
 
-http.createServer(function(request, response) {
+var firstPort = 8888;
+function getFreePort(callback) {
+	var port = firstPort;
+	firstPort++;
 
-	var uri = url.parse(request.url, true);
-	var action = uri.pathname;
+	var server = http.createServer();
 
-	new RequestProcessor(action, uri.query, response);
+	server.listen(port, function (err) {
+		server.once('close', function () {
+			callback(port);
+		});
+		server.close();
+	});
 
-}).listen(8888);
+	server.on('error', function (err) {
+		getFreePort(callback);
+	});
+}
 
-console.log("Datafeed running at\n => http://localhost:8888/\nCTRL + C to shutdown");
+getFreePort(function(port) {
+	http.createServer(function(request, response) {
+		var uri = url.parse(request.url, true);
+		var action = uri.pathname;
+		new RequestProcessor(action, uri.query, response);
+
+	}).listen(port);
+
+	console.log("Datafeed running at\n => http://localhost:" + port + "/\nCTRL + C to shutdown");
+});
