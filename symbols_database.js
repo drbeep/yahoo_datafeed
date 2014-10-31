@@ -4,8 +4,7 @@
 //	This list should contain all the symbosl available through your datafeed.
 //	The current version is extremely incomplete (as it's just a sample): Yahoo has much more of them.
 
-exports.sessionsDemoSymbol = "MOCK.SESSIONS";
-
+var MockupHistoryProvider = require("./mockup_history.js");
 
 var symbols = [
 { name: "^GDAXI", description:"DAX", exchange:"XETRA", type:"index" },
@@ -159,9 +158,15 @@ var symbols = [
 { name: "WFC", description:"Wells Fargo & Company", exchange:"NYSE", type:"stock" },
 { name: "WLT", description:"Walter Energy, Inc.", exchange:"NYSE", type:"stock" },
 { name: "XOM", description:"Exxon Mobil Corporation", exchange:"NYSE", type:"stock" },
-{ name: exports.sessionsDemoSymbol, description:"Symbol with complex sessions", exchange:"MOCK", type:"stock" },
-
-];
+].
+	concat(MockupHistoryProvider.symbols().map(function(x) {
+		return {
+			name: x,
+			description: x,
+			exchange:"MOCK",
+			type:"stock"
+		};
+	}));
 
 
 function searchResultFromDatabaseItem(item) {

@@ -12,6 +12,7 @@ var http = require("http"),
 
 var datafeedHost = "chartapi.finance.yahoo.com";
 var defaultResponseHeader = {"Content-Type": "text/plain", 'Access-Control-Allow-Origin': '*'};
+var MockupHistoryProvider = require("./mockup_history.js");
 
 
 function httpGet(path, callback)
@@ -121,7 +122,7 @@ RequestProcessor = function(action, query, response) {
 		response.end();
 
 		console.log(error);
-	}
+	};
 
 	this.sendConfig = function(response) {
 
@@ -143,13 +144,13 @@ RequestProcessor = function(action, query, response) {
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
 			],
-			supportedResolutions: [ "5", "10", "15", "30", "D", "2D", "3D", "W", "3W", "M", '6M' ]
+			supportedResolutions: [ "5", "10", "15", "30", "60", "D", "2D", "3D", "W", "3W", "M", '6M' ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(config));
 		response.end();
-	}
+	};
 
 
 	this.sendMarks = function(response) {
@@ -169,7 +170,7 @@ RequestProcessor = function(action, query, response) {
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(marks));
 		response.end();
-	}
+	};
 
 
 	this.sendSymbolSearchResults = function(query, type, exchange, maxRecords, response) {
@@ -182,7 +183,7 @@ RequestProcessor = function(action, query, response) {
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(result));
 		response.end();
-	}
+	};
 
 
 	this._pendingRequestType = "";
@@ -195,46 +196,23 @@ RequestProcessor = function(action, query, response) {
 		else if (_pendingRequestType == "meta") {
 			_lastYahooResponse = data.meta;
 		}
-	}
-
-
-	this._mockupSymbolInfo = function(symbolName, response) {
-		var info = {
-			"name": symbolsDatabase.sessionsDemoSymbol,
-			"exchange-traded": "MOCK",
-			"exchange-listed": "MOCK",
-			"timezone": "UTC",
-			"minmov": 1,
-			"minmov2": 0,
-			"pricescale": 100,
-			"pointvalue": 1,
-			"session": "0900-1630|1000-1400,1600-1900:2|1300-1700:3",
-			"has_intraday": true,
-			"intraday_multipliers": ["5", "10", "15"],
-			"supported_resolutions": ["5", "10", "15", "W"],
-			"has_weekly_and_monthly": true,
-			"has_dwm": true,
-			"has_no_volume": true,
-			"ticker": symbolsDatabase.sessionsDemoSymbol,
-			"description": "Mockup symbol with mockup data",
-			"type": "stock"
-		};
-
-		response.writeHead(200, defaultResponseHeader);
-		response.write(JSON.stringify(info));
-		response.end();
-	}
+	};
 
 
 	this.sendSymbolInfo = function(symbolName, response) {
-		if (symbolName.indexOf(symbolsDatabase.sessionsDemoSymbol) >= 0) {
-			this._mockupSymbolInfo(symbolName, response);
+
+		if (MockupHistoryProvider.isMockupSymbolName(symbolName)) {
+			var result = MockupHistoryProvider.symbolInfo(symbolName);
+
+			response.writeHead(200, defaultResponseHeader);
+			response.write(JSON.stringify(result));
+			response.end();
 			return;
 		}
 
 		var symbolInfo = symbolsDatabase.symbolInfo(symbolName);
 
-		if (symbolInfo == null) {
+		if (symbolInfo === null) {
 			throw "unknown_symbol " + symbolName;
 		}
 
@@ -285,157 +263,25 @@ RequestProcessor = function(action, query, response) {
 			response.write(JSON.stringify(info));
 			response.end();
 		});
-	}
-
-
-	this._mockupWSymbolHistory = function(startDateTimestamp, response) {
-		var today = new Date(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''))
-		today.setHours(0, 0, 0, 0);
-
-		var daysCount = parseInt(Math.max((today.valueOf()/1000 - startDateTimestamp) / (60 * 60 * 24), 1));
-		var weeksCount = parseInt(daysCount / 7);
-
-		var msPerDay =  24 * 60 * 60 * 1000;
-		var monday = today - ((today.getDay() % 6) - 1) * msPerDay;
-		monday -= (weeksCount * msPerDay * 7);
-
-
-		var result = {
-			t: [], c: [], o: [], h: [], l: [], v: [],
-			s: "ok"
-		};
-
-		var median = 40;
-
-		while (monday < today) {
-			result.t.push(monday / 1000);
-
-			var open = median + Math.random() * 4 - Math.random() * 4;
-			var close = median + Math.random() * 4 - Math.random() * 4;
-
-			result.o.push(open);
-			result.h.push(Math.max(open, close) + Math.random() * 4);
-			result.l.push(Math.min(open, close) - Math.random() * 4);
-			result.c.push(close);
-
-			median = close;
-
-			if (median < 10) {
-				median = 10;
-			}
-
-			monday += 7 * msPerDay;
-		}
-
-
-		response.writeHead(200, defaultResponseHeader);
-		response.write(JSON.stringify(result));
-		response.end();
-	}
-
-
-	this._mockupSymbolHistory = function(startDateTimestamp, resolution, response) {
-		var sessions = {
-			'default': [{
-					start: 9 * 60,
-					end: 16 * 60 + 30
-				}
-			],
-
-			//	Monday
-			2:  [{
-					start: 10 * 60,
-					end: 14 * 60
-				}, {
-					start: 16 * 60,
-					end: 19 * 60
-				}
-			],
-
-			//	Tuesday
-			3: [{
-					start: 13 * 60,
-					end: 17 * 60
-				}
-			]
-		};
-
-		var result = {
-			t: [], c: [], o: [], h: [], l: [], v: [],
-			s: "ok"
-		};
-
-		var today = new Date(new Date().toISOString().replace(/T/, ' ').replace(/\..+/, ''))
-		today.setHours(0, 0, 0, 0);
-
-		var daysCount = parseInt(Math.max((today.valueOf()/1000 - startDateTimestamp) / (60 * 60 * 24), 1));
-		var median = 40;
-
-		for (var day = daysCount; day >= 0; day--) {
-			var date = new Date(today.valueOf() - day * 24 * 60 * 60 * 1000);
-			var dayIndex = date.getDay() + 1;
-
-			if (dayIndex == 1 || dayIndex == 7) {
-				continue;
-			}
-
-			var daySessions = sessions.hasOwnProperty(dayIndex)
-				? sessions[dayIndex]
-				: sessions['default'];
-
-			for (var i = 0; i < daySessions.length; ++i) {
-				var session = daySessions[i];
-				var barsCount = (session.end - session.start) / resolution;
-
-				for (var barIndex = 0; barIndex < barsCount; barIndex++) {
-
-					var barTime = date.valueOf() / 1000 + session.start * 60 + barIndex * resolution * 60 - date.getTimezoneOffset() * 60;
-
-					//console.log(barTime + ": " + new Date(barTime * 1000));
-
-					result.t.push(barTime);
-
-					var open = median + Math.random() * 4 - Math.random() * 4;
-					var close = median + Math.random() * 4 - Math.random() * 4;
-
-					result.o.push(open);
-					result.h.push(Math.max(open, close) + Math.random() * 4);
-					result.l.push(Math.min(open, close) - Math.random() * 4);
-					result.c.push(close);
-
-					median = close;
-
-					if (median < 10) {
-						median = 10;
-					}
-				}
-			}
-		}
-
-		response.writeHead(200, defaultResponseHeader);
-		response.write(JSON.stringify(result));
-		response.end();
-	}
-
+	};
 
 	this.sendSymbolHistory = function(symbol, startDateTimestamp, resolution, response) {
 
 		console.log("History request: " + symbol + ", " + resolution);
 
-		if (symbol.indexOf(symbolsDatabase.sessionsDemoSymbol) >= 0) {
+		if (MockupHistoryProvider.isMockupSymbolName(symbol)) {
+			console.log("It's a mockup symbol");
+			var result = MockupHistoryProvider.history(symbol, resolution, startDateTimestamp);
 
-			if (resolution.indexOf("w") >= 0) {
-				this._mockupWSymbolHistory(startDateTimestamp, response);
-			}
-			else {
-				this._mockupSymbolHistory(startDateTimestamp, resolution, response);
-			}
+			response.writeHead(200, defaultResponseHeader);
+			response.write(JSON.stringify(result));
+			response.end();
 			return;
 		}
 
 		var symbolInfo = symbolsDatabase.symbolInfo(symbol);
 
-		if (symbolInfo == null) {
+		if (symbolInfo === null) {
 			throw "unknown_symbol";
 		}
 
@@ -465,7 +311,7 @@ RequestProcessor = function(action, query, response) {
 			response.write(JSON.stringify(convertYahooHistoryToUDFFormat(result)));
 			response.end();
 		});
-	}
+	};
 
 	this.sendQuotes = function(tickersString, response) {
 		var tickersMap = {}; // maps YQL symbol to ticker
@@ -502,7 +348,7 @@ RequestProcessor = function(action, query, response) {
 				response.end();
 			});
 		}).end();
-	}
+	};
 
 	try
 	{
@@ -524,14 +370,11 @@ RequestProcessor = function(action, query, response) {
 		else if (action == "/marks") {
 			this.sendMarks(response);
 		}
-		else {
-			throw "wrong_request_format";
-		}
 	}
 	catch (error) {
-		this.sendError(error, response)
+		this.sendError(error, response);
 	}
-}
+};
 
 
 //	Usage:
