@@ -39,10 +39,11 @@ function httpGet(path, callback)
 
 function convertYahooHistoryToUDFFormat(data) {
 
-	//	yyyy-mm-dd
+	// input: string "yyyy-mm-dd" (UTC)
+	// output: milliseconds from 01.01.1970 00:00:00.000 UTC
 	function parseDate(input) {
 		var parts = input.split('-');
-		return new Date(parts[0], parts[1]-1, parts[2]);
+		return Date.UTC(parts[0], parts[1]-1, parts[2]);
 	}
 
 	var result = {
@@ -55,7 +56,8 @@ function convertYahooHistoryToUDFFormat(data) {
 	for (var i = lines.length - 2; i > 0; --i) {
 		var items = lines[i].split(",");
 
-		var time = parseDate(items[0]).valueOf() / 1000;
+		var time = parseDate(items[0]) / 1000;
+
 		result.t.push(time);
 		result.o.push(parseFloat(items[1]));
 		result.h.push(parseFloat(items[2]));
