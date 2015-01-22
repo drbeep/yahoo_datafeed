@@ -7,6 +7,7 @@
 var MockupHistoryProvider = require("./mockup_history.js");
 
 var symbols = [
+{ name: "^MERV", description:"Merval", exchange:"BCBA", type:"index"},
 { name: "^GDAXI", description:"DAX", exchange:"XETRA", type:"index" },
 { name: "^NSEI", description:"CNX NIFTY", exchange:"NSE", type:"index" },
 { name: "A", description:"Agilent Technologies Inc.", exchange:"NYSE", type:"stock" },
@@ -171,8 +172,9 @@ var symbols = [
 
 function searchResultFromDatabaseItem(item) {
 	return {
-		symbol: item.name,
+		symbol: item.name + "*",
 		full_name: item.name,
+		short_name: item.name,
 		description: item.description,
 		exchange: item.exchange,
 		type: item.type

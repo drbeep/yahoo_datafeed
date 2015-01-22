@@ -7,11 +7,19 @@ MockupHistoryProvider = (function() {
 
 
 	that.isMockupSymbolName = function(name) {
+		name = trimName(name);
 		return _symbols.filter(function(x) {return x.name == name; } ).length > 0;
 	};
 
+	function trimName(name) {
+		return name.indexOf("MOCK:") === 0
+			? name.split(':')[1]
+			: name;
+	}
+
 
 	that.symbolInfo = function(name) {
+		name = trimName(name);
 		var symbolRecords = _symbols.filter(function(x) {return x.name == name; } );
 		if (symbolRecords.length === 0) {
 			throw name + " is not a mockup symbol name";
@@ -20,13 +28,16 @@ MockupHistoryProvider = (function() {
 
 		var symbolInfo = applyPatch({}, _mockupSymbolInfo);
 		symbolInfo.name = symbolInfo.ticker = name;
-		symbolInfo.description = "Mockup symbol #" + (_symbols.indexOf(symbolRecord));
+		symbolInfo.description = symbolInfo.description || name;
 
-		return applyPatch(symbolInfo, symbolRecord.symbolInfoPatch);
+		var result = applyPatch(symbolInfo, symbolRecord.symbolInfoPatch);
+		console.log(result);
+		return result;
 	};
 
-	that.history = function(name, resolution, leftDate) {
-		return mockupSymbolHistory(name, resolution, leftDate);
+	that.history = function(name, resolution, leftDate, rightDate) {
+		name = trimName(name);
+		return mockupSymbolHistory(name, resolution, leftDate, rightDate);
 	};
 
 
@@ -35,6 +46,7 @@ MockupHistoryProvider = (function() {
 			name: "M-COMPLEX",
 			symbolInfoPatch: {
 				session: "0900-1630|1000-1400,1600-1900:2|1300-1700:3",
+				has_no_volume: true
 			},
 			tradingSessions:  {
 				tradesOnWeekends: false,
@@ -66,9 +78,11 @@ MockupHistoryProvider = (function() {
 			name: "M-24X7",
 			symbolInfoPatch: {
 				session: "24x7",
-				timezone: "Europe/London",
-				supported_resolutions: ["1", "15", "60"],
-				intraday_multipliers: ["1", "15", "60"]
+				timezone: "Europe/Moscow",
+				supported_resolutions: ["1", "15", "60", "D"],
+				intraday_multipliers: ["1", "15", "60"],
+				has_empty_bars: true,
+				description: "Europe/Moscow 24x7"
 			},
 			tradingSessions:  {
 				tradesOnWeekends: true,
@@ -78,7 +92,86 @@ MockupHistoryProvider = (function() {
 					}
 				],
 			}
-		}
+		}, {
+			name: "M-2200-2200",
+			symbolInfoPatch: {
+				session: "2200-2200",
+				timezone: "UTC",
+				supported_resolutions: ["1", "15", "60", "1440"],
+				intraday_multipliers: ["1", "15", "60", "1440"],
+				has_empty_bars: true,
+				description: "UTC 2200-2200"
+			},
+			tradingSessions:  {
+				tradesOnWeekends: true,
+				'default': [{
+						start: 0,
+						end: 24 * 60
+					}
+				],
+			}
+		}, {
+			name: "M-ASIA-KOLKATA",
+			symbolInfoPatch: {
+				session: '0900-1600',
+				timezone: 'Asia/Kolkata',
+				supported_resolutions: ["15"],
+				intraday_multipliers: ["15"],
+				force_session_rebuild: false,
+				has_empty_bars: false,
+				has_fractional_volume: false,
+				has_weekly_and_monthly: false,
+				minmov: 0.05,
+				minmove2: 0,
+				pointvalue: 1,
+				pricescale: 100,
+				type: "Cash",
+			},
+			tradingSessions:  {
+				tradesOnWeekends: true,
+				'default': [{
+						start: 9 * 60,
+						end: 16 * 60
+					}
+				],
+			}
+		}, {
+			name: "M-EXPIRED",
+			symbolInfoPatch: {
+				session: "24x7",
+				timezone: "Europe/Moscow",
+				supported_resolutions: ["1", "15", "60"],
+				intraday_multipliers: ["1", "15", "60"],
+				description: "Europe/Moscow 24x7 expired @ 1 July 2014",
+				expired: true,
+				expiration_date: new Date("1 July 2014").valueOf() / 1000
+			},
+			tradingSessions:  {
+				tradesOnWeekends: true,
+				'default': [{
+						start: 0,
+						end: 24 * 60
+					}
+				],
+			}
+		},{
+			name: "M-WITH-FIRST-DAY",
+			symbolInfoPatch: {
+				session: "0930-1230;1",
+				timezone: "UTC",
+				supported_resolutions: ["1", "15", "60"],
+				intraday_multipliers: ["1", "15", "60"],
+				description: "UTC 0930-1230;1"
+			},
+			tradingSessions:  {
+				tradesOnWeekends: true,
+				'default': [{
+						start: 9 * 60 + 30,
+						end: 12 * 60 + 30
+					}
+				],
+			}
+		},
 	];
 
 	var _mockupSymbolInfo = {
@@ -90,11 +183,11 @@ MockupHistoryProvider = (function() {
 		"pricescale": 100,
 		"pointvalue": 1,
 		"session": "24x7",
-		"has_intraday": true,
 		"intraday_multipliers": ["5", "10", "15"],
 		"supported_resolutions": ["5", "10", "15", "W"],
-		"has_weekly_and_monthly": true,
-		"has_dwm": true,
+		"has_weekly_and_monthly": false,
+		"has_dwm": false,
+		"has_intraday": true,
 		"has_no_volume": true,
 		"type": "stock"
 	};
@@ -108,10 +201,50 @@ MockupHistoryProvider = (function() {
 	}
 
 
-	function mockupSymbolHistory(symbol, resolution, startDateTimestamp) {
+	function mockupSymbolHistory(symbol, resolution, startDateTimestamp, endDateTimestamp) {
+		var history = createHistory(symbol, resolution);
+
+		var leftBarIndex;
+		var rightBarIndex;
+
+		for (var i = history.t.length - 1; i >= 0; --i ) {
+			if (history.t[i] < endDateTimestamp && !rightBarIndex) {
+				rightBarIndex = i;
+			}
+
+			if (history.t[i] < startDateTimestamp && !leftBarIndex) {
+				leftBarIndex = i;
+				break;
+			}
+		}
+
+		return {
+			s: "ok",
+			t: history.t.slice(leftBarIndex, rightBarIndex),
+			o: history.o.slice(leftBarIndex, rightBarIndex),
+			h: history.h.slice(leftBarIndex, rightBarIndex),
+			l: history.l.slice(leftBarIndex, rightBarIndex),
+			c: history.c.slice(leftBarIndex, rightBarIndex)
+		};
+	}
+
+
+	var _historyCache = {};
+
+	function seriesKey(symbol, resolution) {
+		return symbol + "," + resolution;
+	}
+
+	function createHistory(symbol, resolution) {
 		var symbolRecords = _symbols.filter(function(x) {return x.name == symbol; } );
 		if (symbolRecords.length === 0) {
 			throw symbol + " is not a mockup symbol name";
+		}
+
+		var symbolKey = seriesKey(symbol, resolution);
+
+		if (_historyCache[symbolKey]) {
+			return _historyCache[symbolKey];
 		}
 
 		var sessions = symbolRecords[0].tradingSessions;
@@ -124,14 +257,14 @@ MockupHistoryProvider = (function() {
 		var today = new Date();
 		today.setHours(0, 0, 0, 0);
 
-		var daysCount = parseInt(Math.max((today.valueOf()/1000 - startDateTimestamp) / (60 * 60 * 24), 1));
+		var daysCount = 365 * 2;
 		var median = 40;
 
-		for (var day = daysCount; day >= 0; day--) {
+		for (var day = daysCount; day > 0; day--) {
 			var date = new Date(today.valueOf() - day * 24 * 60 * 60 * 1000);
 			var dayIndex = date.getDay() + 1;
 
-			if (!sessions.tradesOnWeekends && dayIndex == 1 || dayIndex == 7) {
+			if (!sessions.tradesOnWeekends && (dayIndex == 1 || dayIndex == 7)) {
 				continue;
 			}
 
@@ -168,9 +301,9 @@ MockupHistoryProvider = (function() {
 			}
 		}
 
+		_historyCache[symbolKey] = result;
 		return result;
 	}
-
 
 	return that;
 })();

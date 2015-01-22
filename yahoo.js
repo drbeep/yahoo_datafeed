@@ -144,7 +144,7 @@ RequestProcessor = function(action, query, response) {
 				{name: "Stock", value: "stock"},
 				{name: "Index", value: "index"}
 			],
-			supportedResolutions: [ "5", "10", "15", "30", "60", "D", "2D", "3D", "W", "3W", "M", '6M' ]
+			supportedResolutions: [ "1", "15", "30", "60", "D", "2D", "3D", "W", "3W", "M", '6M' ]
 		};
 
 		response.writeHead(200, defaultResponseHeader);
@@ -200,8 +200,9 @@ RequestProcessor = function(action, query, response) {
 
 
 	this.sendSymbolInfo = function(symbolName, response) {
-
+		console.log("sendSymbolInfo: " + symbolName);
 		if (MockupHistoryProvider.isMockupSymbolName(symbolName)) {
+			console.log("is's a mockup");
 			var result = MockupHistoryProvider.symbolInfo(symbolName);
 
 			response.writeHead(200, defaultResponseHeader);
@@ -243,7 +244,7 @@ RequestProcessor = function(action, query, response) {
 				: 10;
 
 			var info = {
-				"name": symbolInfo.name,
+				"name": symbolInfo.name + "*",
 				"exchange-traded": symbolInfo.exchange,
 				"exchange-listed": symbolInfo.exchange,
 				"timezone": "America/New_York",
@@ -265,13 +266,17 @@ RequestProcessor = function(action, query, response) {
 		});
 	};
 
-	this.sendSymbolHistory = function(symbol, startDateTimestamp, resolution, response) {
+	this.sendSymbolHistory = function(symbol, startDateTimestamp, endDateTimestamp, resolution, response) {
 
 		console.log("History request: " + symbol + ", " + resolution);
 
 		if (MockupHistoryProvider.isMockupSymbolName(symbol)) {
 			console.log("It's a mockup symbol");
-			var result = MockupHistoryProvider.history(symbol, resolution, startDateTimestamp);
+			if (resolution.toLowerCase() == 'd') {
+				resolution = 1440;
+			}
+
+			var result = MockupHistoryProvider.history(symbol, resolution, startDateTimestamp, endDateTimestamp);
 
 			response.writeHead(200, defaultResponseHeader);
 			response.write(JSON.stringify(result));
@@ -362,7 +367,7 @@ RequestProcessor = function(action, query, response) {
 			this.sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
 		else if (action == "/history") {
-			this.sendSymbolHistory(query["symbol"], query["from"], query["resolution"].toLowerCase(), response);
+			this.sendSymbolHistory(query["symbol"], query["from"], query["to"], query["resolution"].toLowerCase(), response);
 		}
 		else if (action == "/quotes") {
 			this.sendQuotes(query["symbols"], response);
