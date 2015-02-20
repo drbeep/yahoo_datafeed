@@ -93,6 +93,42 @@ MockupHistoryProvider = (function() {
 				],
 			}
 		}, {
+			name: "M-0930-1900",
+			symbolInfoPatch: {
+				session: "0930-1900",
+				timezone: "Europe/Moscow",
+				supported_resolutions: ["1", "15", "60", "D"],
+				intraday_multipliers: ["1", "15", "60"],
+				has_empty_bars: true,
+				description: "Europe/Moscow 0930-1900"
+			},
+			tradingSessions:  {
+				tradesOnWeekends: true,
+				'default': [{
+						start: 9 * 60 + 30,
+						end: 19 * 60
+					}
+				],
+			}
+		}, {
+			name: "M-1100-1700",
+			symbolInfoPatch: {
+				session: "1100-1700",
+				timezone: "America/Argentina/Buenos_Aires",
+				supported_resolutions: ["1", "15", "60", "D"],
+				intraday_multipliers: ["1", "15", "60"],
+				has_empty_bars: false,
+				description: "Buenos Aires 0930-1900"
+			},
+			tradingSessions:  {
+				tradesOnWeekends: false,
+				'default': [{
+						start: 11*60,
+						end: 17 * 60
+					}
+				],
+			}
+		}, {
 			name: "M-2200-2200",
 			symbolInfoPatch: {
 				session: "2200-2200",
