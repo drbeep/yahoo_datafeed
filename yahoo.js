@@ -388,32 +388,11 @@ RequestProcessor = function(action, query, response) {
 //		/search?query=B&limit=10
 //		/history?symbol=C&from=DATE&resolution=E
 
-var firstPort = 8888;
-function getFreePort(callback) {
-	var port = firstPort;
-	firstPort++;
+var port = 8888;
+http.createServer(function(request, response) {
+	var uri = url.parse(request.url, true);
+	var action = uri.pathname;
+	new RequestProcessor(action, uri.query, response);
+}).listen(port);
 
-	var server = http.createServer();
-
-	server.listen(port, function (err) {
-		server.once('close', function () {
-			callback(port);
-		});
-		server.close();
-	});
-
-	server.on('error', function (err) {
-		getFreePort(callback);
-	});
-}
-
-getFreePort(function(port) {
-	http.createServer(function(request, response) {
-		var uri = url.parse(request.url, true);
-		var action = uri.pathname;
-		new RequestProcessor(action, uri.query, response);
-
-	}).listen(port);
-
-	console.log("Datafeed running at\n => http://localhost:" + port + "/\nCTRL + C to shutdown");
-});
+console.log("Datafeed running at\n => http://localhost:" + 8888 + "/\nCTRL + C to shutdown");
