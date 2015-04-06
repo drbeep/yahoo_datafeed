@@ -81,7 +81,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 		var ticker = tickersMap[quote.symbol];
 
 		// this field is an error token
-		if (quote["ErrorIndicationreturnedforsymbolchangedinvalid"]) {
+		if (quote["ErrorIndicationreturnedforsymbolchangedinvalid"] || !quote.StockExchange) {
 			result.d.push({ s: "error", n: ticker, v: {} });
 			return;
 		}
@@ -91,7 +91,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 			n: ticker,
 			v: {
 				ch: quote.ChangeRealtime || quote.Change,
-				chp: (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
+				chp: (quote.PercentChange || quote.ChangeinPercent) && (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1"),
 
 				short_name: quote.Symbol,
 				exchange: quote.StockExchange,
