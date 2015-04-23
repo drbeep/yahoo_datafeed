@@ -241,7 +241,6 @@ RequestProcessor = function(action, query, response) {
 				"minmov2": 0,
 				"pricescale": pricescale,
 				"pointvalue": 1,
-				"timezone": "UTC",
 				"session": "0930-1630",
 				"has_intraday": false,
 				"has_no_volume": symbolInfo.type != "stock",
