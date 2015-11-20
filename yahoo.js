@@ -11,7 +11,12 @@ var http = require("http"),
 	symbolsDatabase = require("./symbols_database");
 
 var datafeedHost = "chartapi.finance.yahoo.com";
-var defaultResponseHeader = {"Content-Type": "text/plain", 'Access-Control-Allow-Origin': '*'};
+
+function createDefaultHeader() {
+	return {"Content-Type": "text/plain", 'Access-Control-Allow-Origin': '*'};
+}
+
+var defaultResponseHeader = createDefaultHeader();
 
 
 function httpGet(path, callback)
@@ -331,8 +336,11 @@ RequestProcessor = function(action, query, response) {
 		var that = this;
 
 		httpGet(address, function(result) {
-			response.writeHead(200, defaultResponseHeader);
-			response.write(JSON.stringify(convertYahooHistoryToUDFFormat(result)));
+			var content = JSON.stringify(convertYahooHistoryToUDFFormat(result));
+			var header = createDefaultHeader();
+			header["Content-Length"] = content.length;
+			response.writeHead(200, header);
+			response.write(content);
 			response.end();
 		});
 	}
