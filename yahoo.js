@@ -374,6 +374,12 @@ RequestProcessor = function(action, query, response) {
 			});
 
 			res.on('end', function () {
+				if (res.statusCode !== 200) {
+					response.writeHead(204, defaultResponseHeader);
+					console.error('Wrong response: ' + result);
+					response.end();
+					return;
+				}
 				response.writeHead(200, defaultResponseHeader);
 				response.write(JSON.stringify(convertYahooQuotesToUDFFormat(
 						tickersMap, JSON.parse(result))));
