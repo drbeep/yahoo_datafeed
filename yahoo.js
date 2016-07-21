@@ -397,8 +397,8 @@ RequestProcessor = function(action, query, response) {
 
 			res.on('end', function () {
 				if (res.statusCode !== 200) {
-					response.writeHead(204, defaultResponseHeader);
-					console.error('Wrong response: ' + result);
+					response.writeHead(200, defaultResponseHeader);
+					response.write(JSON.stringify({ s: 'error', errmsg: 'Yahoo fails' }));
 					response.end();
 					return;
 				}
