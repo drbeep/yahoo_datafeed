@@ -7,6 +7,7 @@
 */
 
 var http = require("http"),
+	https = require("https"),
 	url = require("url"),
 	symbolsDatabase = require("./symbols_database");
 
@@ -140,6 +141,28 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 	   	});
 	});
 	return result;
+}
+
+function proxyRequest(controller, options, response) {
+	controller.request(options, function(res) {
+			var result = '';
+
+			res.on('data', function (chunk) {
+				result += chunk;
+			});
+
+			res.on('end', function () {
+				if (res.statusCode !== 200) {
+					response.writeHead(200, defaultResponseHeader);
+					response.write(JSON.stringify({ s: 'error', errmsg: 'Failed to get news' }));
+					response.end();
+					return;
+				}
+				response.writeHead(200, defaultResponseHeader);
+				response.write(result);
+				response.end();
+			});
+		}).end();
 }
 
 RequestProcessor = function(action, query, response) {
@@ -409,6 +432,24 @@ RequestProcessor = function(action, query, response) {
 			});
 		}).end();
 	}
+	
+	this.sendNews = function(symbol, response) {
+		var options = {
+			host: "feeds.finance.yahoo.com",
+			path: "/rss/2.0/headline?s=" + symbol + "&region=US&lang=en-US",
+		};
+
+		proxyRequest(https, options, response);
+	}
+	
+	this.sendFuturesmag = function(response) {
+		var options = {
+			host: "www.futuresmag.com",
+			path: "/rss/all",
+		};
+
+		proxyRequest(http, options, response);
+	}
 
 	try
 	{
@@ -435,6 +476,12 @@ RequestProcessor = function(action, query, response) {
 		}
 		else if (action == "/timescale_marks") {
 			this.sendTimescaleMarks(response);
+		}
+		else if (action == "/news") {
+			this.sendNews(query["symbol"], response);
+		}
+		else if (action == "/futuresmag") {
+			this.sendFuturesmag(response);
 		}
 	}
 	catch (error) {
