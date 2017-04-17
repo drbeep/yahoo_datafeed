@@ -44,21 +44,21 @@ function httpGet(path, callback)
 		});
 	}
 
-	var req = http.request(options, onDataCallback);
-	
+	var req = https.request(options, onDataCallback);
+
 	req.on('socket', function (socket) {
-		socket.setTimeout(5000);  
+		socket.setTimeout(5000);
 		socket.on('timeout', function() {
 			console.log('timeout');
 			req.abort();
 		});
 	});
-	
+
 	req.on('error', function(e) {
 		console.log('Problem with request: ' + e.message);
 		callback('');
 	});
-	
+
 	req.end();
 }
 
@@ -83,7 +83,7 @@ function convertYahooHistoryToUDFFormat(data) {
 		var items = lines[i].split(",");
 
 		var time = parseDate(items[0]) / 1000;
-		
+
 		result.t.push(time);
 		result.o.push(parseFloat(items[1]));
 		result.h.push(parseFloat(items[2]));
@@ -91,7 +91,7 @@ function convertYahooHistoryToUDFFormat(data) {
 		result.c.push(parseFloat(items[4]));
 		result.v.push(parseFloat(items[5]));
 	}
-	
+
 	if (result.t.length === 0) {
 		result.s = "no_data";
 	}
@@ -226,24 +226,24 @@ RequestProcessor = function(action, query, response) {
 		response.write(JSON.stringify(marks));
 		response.end();
 	}
-	
+
 	this.sendTime = function(response) {
 		var now = new Date();
 		response.writeHead(200, defaultResponseHeader);
 		response.write(Math.floor(now / 1000) + '');
 		response.end();
 	};
-	
+
 	this.sendTimescaleMarks = function(response) {
 		var now = new Date();
 		now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
 		var day = 60 * 60 * 24;
-		
+
 		var marks = [
 		{id: "tsm1", time: now - day * 0, color: "red", label: "A", tooltip: ""},
 		{id: "tsm2", time: now - day * 4, color: "blue", label: "D", tooltip: ["Dividends: $0.56", "Date: " + new Date((now - day * 4) * 1000).toDateString()]},
 		{id: "tsm3", time: now - day * 7, color: "green", label: "D", tooltip: ["Dividends: $3.46", "Date: " + new Date((now - day * 7) * 1000).toDateString()]},
-		{id: "tsm4", time: now - day * 15, color: "#999999", label: "E", tooltip: ["Earnings: $3.44", "Estimate: $3.60"]},		
+		{id: "tsm4", time: now - day * 15, color: "#999999", label: "E", tooltip: ["Earnings: $3.44", "Estimate: $3.60"]},
 		{id: "tsm7", time: now - day * 30, color: "red", label: "E", tooltip: ["Earnings: $5.40", "Estimate: $5.00"]},
 		];
 
@@ -351,15 +351,15 @@ RequestProcessor = function(action, query, response) {
 		var year = requestLeftDate.getFullYear();
 		var month = requestLeftDate.getMonth();
 		var day = requestLeftDate.getDate();
-		
+
 		var endtext = '';
-		
-		if (endDateTimestamp) {			
-			var requestRightDate = new Date(endDateTimestamp * 1000);			
+
+		if (endDateTimestamp) {
+			var requestRightDate = new Date(endDateTimestamp * 1000);
 			var endyear = requestRightDate.getFullYear();
 			var endmonth = requestRightDate.getMonth();
 			var endday = requestRightDate.getDate();
-			
+
 			endtext = '&d=' + endmonth +
 			'&e=' + endday +
 			'&f=' + endyear;
@@ -391,7 +391,7 @@ RequestProcessor = function(action, query, response) {
 	}
 
 	this.sendQuotes = function(tickersString, response) {
-		var tickersMap = {}; // maps YQL symbol to ticker 
+		var tickersMap = {}; // maps YQL symbol to ticker
 
 		var tickers = tickersString.split(",");
 		[].concat(tickers).forEach(function(ticker) {
@@ -432,7 +432,7 @@ RequestProcessor = function(action, query, response) {
 			});
 		}).end();
 	}
-	
+
 	this.sendNews = function(symbol, response) {
 		var options = {
 			host: "feeds.finance.yahoo.com",
@@ -441,7 +441,7 @@ RequestProcessor = function(action, query, response) {
 
 		proxyRequest(https, options, response);
 	}
-	
+
 	this.sendFuturesmag = function(response) {
 		var options = {
 			host: "www.futuresmag.com",
