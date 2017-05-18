@@ -12,6 +12,8 @@ var http = require("http"),
 	symbolsDatabase = require("./symbols_database");
 
 var datafeedHost = "chartapi.finance.yahoo.com";
+var lastHistoryErrorTime = null;
+var errorSwitchingTime = 60 * 60 * 1000; // switch to Quandl for 1 hour
 
 function createDefaultHeader() {
 	return {"Content-Type": "text/plain", 'Access-Control-Allow-Origin': '*'};
@@ -19,8 +21,7 @@ function createDefaultHeader() {
 
 var defaultResponseHeader = createDefaultHeader();
 
-
-function httpGet(path, callback)
+function httpGet(datafeedHost, path, callback, failedCallback)
 {
 	var options = {
 		host: datafeedHost,
@@ -56,7 +57,7 @@ function httpGet(path, callback)
 
 	req.on('error', function(e) {
 		console.log('Problem with request: ' + e.message);
-		callback('');
+		failedCallback ? failedCallback(e) : callback('');
 	});
 
 	req.end();
@@ -96,6 +97,49 @@ function convertYahooHistoryToUDFFormat(data) {
 		result.s = "no_data";
 	}
 
+	return result;
+}
+
+function convertQuandlHistoryToUDFFormat(data) {
+	function parseDate(input) {
+		var parts = input.split('-');
+		return Date.UTC(parts[0], parts[1]-1, parts[2]);
+	}
+	
+	function columnIndices(columns) {
+		var indices = {};
+		for (var i = 0; i < columns.length; i++) {
+			indices[columns[i].name] = i;
+		}
+		
+		return indices;
+	}
+
+	var result = {
+		t: [], c: [], o: [], h: [], l: [], v: [],
+		s: "ok"
+	};
+	
+	try {
+		var json = JSON.parse(data);
+		var datatable = json.datatable;		
+		var data = datatable.data;
+		var columns = datatable.columns;
+		var idx = columnIndices(columns);
+		
+		data.forEach(function(row) {
+			result.t.push(parseDate(row[idx.date]) / 1000);
+			result.o.push(row[idx.open]);
+			result.h.push(row[idx.high]);
+			result.l.push(row[idx.low]);
+			result.c.push(row[idx.close]);
+			result.v.push(row[idx.volume]);
+		});
+		
+	} catch(error) {
+		console.error(error);
+	}
+	
 	return result;
 }
 
@@ -285,13 +329,39 @@ RequestProcessor = function(action, query, response) {
 		if (symbolInfo == null) {
 			throw "unknown_symbol " + symbolName;
 		}
+		
+		var info = {
+			"name": symbolInfo.name,
+			"exchange-traded": symbolInfo.exchange,
+			"exchange-listed": symbolInfo.exchange,
+			"timezone": "America/New_York",
+			"minmov": 1,
+			"minmov2": 0,					
+			"pointvalue": 1,
+			"session": "0930-1630",
+			"has_intraday": false,
+			"has_no_volume": symbolInfo.type != "stock",					
+			"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
+			"type": symbolInfo.type,
+			"supported_resolutions" : ["D","2D","3D","W","3W","M","6M"],
+			"pricescale": 100,
+			"ticker": symbolInfo.name.toUpperCase(),
+		};
+		
+		if (lastHistoryErrorTime && Date.now() - lastHistoryErrorTime < errorSwitchingTime) {
+			// return default response if we have problems with Yahoo
+			response.writeHead(200, defaultResponseHeader);
+			response.write(JSON.stringify(info));
+			response.end();
+			return;
+		}
 
 		var address = "/instrument/1.0/" + encodeURIComponent(symbolInfo.name) + "/chartdata;type=quote;/json";
 		var that = this;
 
 		console.log(datafeedHost + address);
 
-		httpGet(address, function(result) {
+		httpGet(datafeedHost, address, function(result) {
 			_pendingRequestType = "meta";
 
 			try {
@@ -303,41 +373,69 @@ RequestProcessor = function(action, query, response) {
 				that.sendError("invalid symbol", response);
 				return;
 			}
+			
+			try {			
+				var lastPrice = _lastYahooResponse["previous_close"] + "";
 
-			var lastPrice = _lastYahooResponse["previous_close"] + "";
+				//	BEWARE: this `pricescale` parameter computation algorithm is wrong and works
+				//	for symbols with 10-based minimal movement value only
+				var pricescale = lastPrice.indexOf('.') > 0
+					? Math.pow(10, lastPrice.split('.')[1].length)
+					: 10;
 
-			//	BEWARE: this `pricescale` parameter computation algorithm is wrong and works
-			//	for symbols with 10-based minimal movement value only
-			var pricescale = lastPrice.indexOf('.') > 0
-				? Math.pow(10, lastPrice.split('.')[1].length)
-				: 10;
-
-			var info = {
-				"name": symbolInfo.name,
-				"exchange-traded": symbolInfo.exchange,
-				"exchange-listed": symbolInfo.exchange,
-				"timezone": "America/New_York",
-				"minmov": 1,
-				"minmov2": 0,
-				"pricescale": pricescale,
-				"pointvalue": 1,
-				"session": "0930-1630",
-				"has_intraday": false,
-				"has_no_volume": symbolInfo.type != "stock",
-				"ticker": _lastYahooResponse["ticker"].toUpperCase(),
-				"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
-				"type": symbolInfo.type,
-				"supported_resolutions" : ["D","2D","3D","W","3W","M","6M"]
-			};
-
+				Object.assign(info, {					
+					"pricescale": pricescale,					
+					"ticker": _lastYahooResponse["ticker"].toUpperCase(),					
+				});
+			} catch(error) {
+				console.error(error);				
+			}
+				
+				
 			response.writeHead(200, defaultResponseHeader);
 			response.write(JSON.stringify(info));
 			response.end();
 		});
 	}
 
+	function requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response) {			
+		function dateToYMD(date) {
+			var obj = new Date(date * 1000);
+			var year = obj.getFullYear();
+			var month = obj.getMonth();
+			var day = obj.getDate();
+			return year + "-" + month + "-" + day;
+		}
+		var address = "/api/v3/datatables/WIKI/PRICES.json" +
+			"?api_key=" + process.env.QUANDL_API_KEY + // you should create a free account on quandl.com to get this key
+			"&ticker=" + symbol +
+			"&date.gte=" + dateToYMD(startDateTimestamp) +
+			"&date.lte=" + dateToYMD(endDateTimestamp);
+			
+		console.log("Sending request to quandl for symbol " + symbol + ". url=" + address);
+			
+		httpGet("www.quandl.com", address, function(result) {				
+				if (response.finished) {
+					// we can be here if error happened on socket disconnect
+					return;
+				}
+				inCallback = true;
+				var content = JSON.stringify(convertQuandlHistoryToUDFFormat(result));
+				var header = createDefaultHeader();
+				header["Content-Length"] = content.length;
+				response.writeHead(200, header);				
+				response.write(content, null, function() {				
+					response.end();		
+				});		
+		});
+		
+	};
 
-	this.sendSymbolHistory = function(symbol, startDateTimestamp, endDateTimestamp, resolution, response) {
+	this.sendSymbolHistory = function(symbol, startDateTimestamp, endDateTimestamp, resolution, response) {		
+		if (lastHistoryErrorTime && Date.now() - lastHistoryErrorTime < errorSwitchingTime) {
+			requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response);
+			return;
+		}
 
 		var symbolInfo = symbolsDatabase.symbolInfo(symbol);
 
@@ -380,15 +478,20 @@ RequestProcessor = function(action, query, response) {
 
 		var that = this;
 
-		httpGet(address, function(result) {
+		httpGet(datafeedHost, address, function(result) {			
 			var content = JSON.stringify(convertYahooHistoryToUDFFormat(result));
 			var header = createDefaultHeader();
 			header["Content-Length"] = content.length;
 			response.writeHead(200, header);
-			response.write(content);
-			response.end();
+			response.write(content, null, function() {
+				response.end();
+			});			
+		}, function(error) {
+			// try another feed
+			requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response);
+			lastHistoryErrorTime = Date.now();
 		});
-	}
+	}		
 
 	this.sendQuotes = function(tickersString, response) {
 		var tickersMap = {}; // maps YQL symbol to ticker
