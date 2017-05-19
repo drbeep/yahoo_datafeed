@@ -14,6 +14,12 @@ var http = require("http"),
 var datafeedHost = "chartapi.finance.yahoo.com";
 var lastHistoryErrorTime = null;
 var errorSwitchingTime = 60 * 60 * 1000; // switch to Quandl for 1 hour
+var quandlCache = {};
+
+var quandlCacheCleanupTime = 3 * 60 * 60 * 100; // 3 hours
+setInterval(function() {
+	quandlCache = {};
+}, quandlCacheCleanupTime);
 
 function createDefaultHeader() {
 	return {"Content-Type": "text/plain", 'Access-Control-Allow-Origin': '*'};
@@ -37,7 +43,7 @@ function httpGet(datafeedHost, path, callback, failedCallback)
 
 		response.on('end', function () {
 			if (response.statusCode !== 200) {
-				callback('');
+				failedCallback ? failedCallback(response.statusCode) : callback('');
 				return;
 			}
 
@@ -406,11 +412,32 @@ RequestProcessor = function(action, query, response) {
 			var day = obj.getDate();
 			return year + "-" + month + "-" + day;
 		}
+		
+		function sendResult(content) {			
+			var header = createDefaultHeader();
+			header["Content-Length"] = content.length;
+			response.writeHead(200, header);				
+			response.write(content, null, function() {				
+				response.end();		
+			});
+		}
+		
+		var from = dateToYMD(startDateTimestamp);
+		var to = dateToYMD(endDateTimestamp);
+		
+		var key = symbol + "|" + from + "|" + to;
+		
+		if (quandlCache[key]) {
+			console.log("Return QUANDL result from cache: " + key);
+			sendResult(quandlCache[key]);
+			return;
+		}
+		
 		var address = "/api/v3/datatables/WIKI/PRICES.json" +
 			"?api_key=" + process.env.QUANDL_API_KEY + // you should create a free account on quandl.com to get this key
 			"&ticker=" + symbol +
-			"&date.gte=" + dateToYMD(startDateTimestamp) +
-			"&date.lte=" + dateToYMD(endDateTimestamp);
+			"&date.gte=" + from +
+			"&date.lte=" + to;
 			
 		console.log("Sending request to quandl for symbol " + symbol + ". url=" + address);
 			
@@ -418,15 +445,10 @@ RequestProcessor = function(action, query, response) {
 				if (response.finished) {
 					// we can be here if error happened on socket disconnect
 					return;
-				}
-				inCallback = true;
-				var content = JSON.stringify(convertQuandlHistoryToUDFFormat(result));
-				var header = createDefaultHeader();
-				header["Content-Length"] = content.length;
-				response.writeHead(200, header);				
-				response.write(content, null, function() {				
-					response.end();		
-				});		
+				}				
+				var content = JSON.stringify(convertQuandlHistoryToUDFFormat(result));				
+				quandlCache[key] = content;
+				sendResult(content);
 		});
 		
 	};
