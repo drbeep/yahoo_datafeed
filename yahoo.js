@@ -422,7 +422,7 @@ RequestProcessor = function(action, query, response) {
 			});
 		}
 		
-		var from = dateToYMD(startDateTimestamp);
+		var from = '1970-01-01'; // dateToYMD(startDateTimestamp); always return all data to reduce number of requests to quandl
 		var to = dateToYMD(endDateTimestamp);
 		
 		var key = symbol + "|" + from + "|" + to;
