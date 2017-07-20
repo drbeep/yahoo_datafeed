@@ -1,19 +1,22 @@
 /*
 	This file is a node.js module.
 
-	This is a sample implementation of UDF-compatible datafeed wrapper for yahoo.finance.
-	Some algorithms may be icorrect because it's rather an UDF implementation sample
+	This is a sample implementation of UDF-compatible datafeed wrapper for Quandl (historical data) and yahoo.finance (quotes).
+	Some algorithms may be incorrect because it's rather an UDF implementation sample
 	then a proper datafeed implementation.
 */
+
+/* global require */
+/* global console */
+/* global process */
+
+"use strict";
 
 var http = require("http"),
 	https = require("https"),
 	url = require("url"),
 	symbolsDatabase = require("./symbols_database");
 
-var datafeedHost = "chartapi.finance.yahoo.com";
-var lastHistoryErrorTime = null;
-var errorSwitchingTime = 60 * 60 * 1000; // switch to Quandl for 1 hour
 var quandlCache = {};
 
 var quandlCacheCleanupTime = 3 * 60 * 60 * 100; // 3 hours
@@ -27,27 +30,27 @@ function createDefaultHeader() {
 
 var defaultResponseHeader = createDefaultHeader();
 
-function httpGet(datafeedHost, path, callback, failedCallback)
+function httpGet(datafeedHost, path, callback)
 {
 	var options = {
 		host: datafeedHost,
 		path: path
 	};
 
-	onDataCallback = function(response) {
+	function onDataCallback(response) {
 		var result = '';
 
 		response.on('data', function (chunk) {
-			result += chunk
+			result += chunk;
 		});
 
 		response.on('end', function () {
 			if (response.statusCode !== 200) {
-				failedCallback ? failedCallback(response.statusCode) : callback('');
+				callback('');
 				return;
 			}
 
-			callback(result)
+			callback(result);
 		});
 	}
 
@@ -63,47 +66,10 @@ function httpGet(datafeedHost, path, callback, failedCallback)
 
 	req.on('error', function(e) {
 		console.log('Problem with request: ' + e.message);
-		failedCallback ? failedCallback(e) : callback('');
+		callback('');
 	});
 
 	req.end();
-}
-
-
-function convertYahooHistoryToUDFFormat(data) {
-
-	// input: string "yyyy-mm-dd" (UTC)
-	// output: milliseconds from 01.01.1970 00:00:00.000 UTC
-	function parseDate(input) {
-		var parts = input.split('-');
-		return Date.UTC(parts[0], parts[1]-1, parts[2]);
-	}
-
-	var result = {
-		t: [], c: [], o: [], h: [], l: [], v: [],
-		s: "ok"
-	};
-
-	var lines = data.split('\n');
-
-	for (var i = lines.length - 2; i > 0; --i) {
-		var items = lines[i].split(",");
-
-		var time = parseDate(items[0]) / 1000;
-
-		result.t.push(time);
-		result.o.push(parseFloat(items[1]));
-		result.h.push(parseFloat(items[2]));
-		result.l.push(parseFloat(items[3]));
-		result.c.push(parseFloat(items[4]));
-		result.v.push(parseFloat(items[5]));
-	}
-
-	if (result.t.length === 0) {
-		result.s = "no_data";
-	}
-
-	return result;
 }
 
 function convertQuandlHistoryToUDFFormat(data) {
@@ -129,11 +95,9 @@ function convertQuandlHistoryToUDFFormat(data) {
 	try {
 		var json = JSON.parse(data);
 		var datatable = json.datatable;		
-		var data = datatable.data;
-		var columns = datatable.columns;
-		var idx = columnIndices(columns);
-		
-		data.forEach(function(row) {
+		var idx = columnIndices(datatable.columns);
+
+		datatable.data.forEach(function(row) {
 			result.t.push(parseDate(row[idx.date]) / 1000);
 			result.o.push(row[idx.open]);
 			result.h.push(row[idx.high]);
@@ -167,7 +131,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 		}
 
 		result.d.push({
-		   	s: "ok",
+			s: "ok",
 			n: ticker,
 			v: {
 				ch: quote.ChangeRealtime || quote.Change,
@@ -188,7 +152,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 				prev_close_price: quote.PreviousClose,
 				volume: quote.Volume,
 			}
-	   	});
+		});
 	});
 	return result;
 }
@@ -215,7 +179,7 @@ function proxyRequest(controller, options, response) {
 		}).end();
 }
 
-RequestProcessor = function(action, query, response) {
+function RequestProcessor(action, query, response) {
 
 	this.sendError = function(error, response) {
 		response.writeHead(200, defaultResponseHeader);
@@ -223,7 +187,7 @@ RequestProcessor = function(action, query, response) {
 		response.end();
 
 		console.log(error);
-	}
+	};
 
 
 	this.sendConfig = function(response) {
@@ -235,13 +199,11 @@ RequestProcessor = function(action, query, response) {
 			supports_timescale_marks: true,
 			supports_time: true,
 			exchanges: [
-				{value: "", name: "All Exchanges", desc: ""},
-				{value: "XETRA", name: "XETRA", desc: "XETRA"},
-				{value: "NSE", name: "NSE", desc: "NSE"},
+				{value: "", name: "All Exchanges", desc: ""},				
 				{value: "NasdaqNM", name: "NasdaqNM", desc: "NasdaqNM"},
 				{value: "NYSE", name: "NYSE", desc: "NYSE"},
-				{value: "CDNX", name: "CDNX", desc: "CDNX"},
-				{value: "Stuttgart", name: "Stuttgart", desc: "Stuttgart"},
+				{value: "NCM", name: "NCM", desc: "NCM"},
+				{value: "NGM", name: "NGM", desc: "NGM"},
 			],
 			symbolsTypes: [
 				{name: "All types", value: ""},
@@ -254,7 +216,7 @@ RequestProcessor = function(action, query, response) {
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(config));
 		response.end();
-	}
+	};
 
 
 	this.sendMarks = function(response) {
@@ -275,7 +237,7 @@ RequestProcessor = function(action, query, response) {
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(marks));
 		response.end();
-	}
+	};
 
 	this.sendTime = function(response) {
 		var now = new Date();
@@ -313,26 +275,12 @@ RequestProcessor = function(action, query, response) {
 		response.writeHead(200, defaultResponseHeader);
 		response.write(JSON.stringify(result));
 		response.end();
-	}
-
-
-	this._pendingRequestType = "";
-	this._lastYahooResponse = null;
-
-	this.finance_charts_json_callback = function(data) {
-		if (_pendingRequestType == "data") {
-			_lastYahooResponse = data.series;
-		}
-		else if (_pendingRequestType == "meta") {
-			_lastYahooResponse = data.meta;
-		}
-	}
-
+	};
 
 	this.sendSymbolInfo = function(symbolName, response) {
 		var symbolInfo = symbolsDatabase.symbolInfo(symbolName);
 
-		if (symbolInfo == null) {
+		if (!symbolInfo) {
 			throw "unknown_symbol " + symbolName;
 		}
 		
@@ -346,69 +294,24 @@ RequestProcessor = function(action, query, response) {
 			"pointvalue": 1,
 			"session": "0930-1630",
 			"has_intraday": false,
-			"has_no_volume": symbolInfo.type != "stock",					
+			"has_no_volume": symbolInfo.type !== "stock",					
 			"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
 			"type": symbolInfo.type,
 			"supported_resolutions" : ["D","2D","3D","W","3W","M","6M"],
 			"pricescale": 100,
-			"ticker": symbolInfo.name.toUpperCase(),
-		};
-		
-		if (lastHistoryErrorTime && Date.now() - lastHistoryErrorTime < errorSwitchingTime) {
-			// return default response if we have problems with Yahoo
-			response.writeHead(200, defaultResponseHeader);
-			response.write(JSON.stringify(info));
-			response.end();
-			return;
-		}
-
-		var address = "/instrument/1.0/" + encodeURIComponent(symbolInfo.name) + "/chartdata;type=quote;/json";
-		var that = this;
-
-		console.log(datafeedHost + address);
-
-		httpGet(datafeedHost, address, function(result) {
-			_pendingRequestType = "meta";
-
-			try {
-				with (that) {
-					eval(result);
-				}
-			}
-			catch (error) {
-				that.sendError("invalid symbol", response);
-				return;
-			}
-			
-			try {			
-				var lastPrice = _lastYahooResponse["previous_close"] + "";
-
-				//	BEWARE: this `pricescale` parameter computation algorithm is wrong and works
-				//	for symbols with 10-based minimal movement value only
-				var pricescale = lastPrice.indexOf('.') > 0
-					? Math.pow(10, lastPrice.split('.')[1].length)
-					: 10;
-
-				Object.assign(info, {					
-					"pricescale": pricescale,					
-					"ticker": _lastYahooResponse["ticker"].toUpperCase(),					
-				});
-			} catch(error) {
-				console.error(error);				
-			}
+			"ticker": symbolInfo.name.toUpperCase()
+		};			
 				
-				
-			response.writeHead(200, defaultResponseHeader);
-			response.write(JSON.stringify(info));
-			response.end();
-		});
-	}
+		response.writeHead(200, defaultResponseHeader);
+		response.write(JSON.stringify(info));
+		response.end();	
+	};
 
-	function requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response) {			
+	this.sendSymbolHistory = function(symbol, startDateTimestamp, endDateTimestamp, resolution, response) {		
 		function dateToYMD(date) {
 			var obj = new Date(date * 1000);
 			var year = obj.getFullYear();
-			var month = obj.getMonth();
+			var month = obj.getMonth() + 1;
 			var day = obj.getDate();
 			return year + "-" + month + "-" + day;
 		}
@@ -450,70 +353,7 @@ RequestProcessor = function(action, query, response) {
 				quandlCache[key] = content;
 				sendResult(content);
 		});
-		
 	};
-
-	this.sendSymbolHistory = function(symbol, startDateTimestamp, endDateTimestamp, resolution, response) {		
-		if (lastHistoryErrorTime && Date.now() - lastHistoryErrorTime < errorSwitchingTime) {
-			requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response);
-			return;
-		}
-
-		var symbolInfo = symbolsDatabase.symbolInfo(symbol);
-
-		if (symbolInfo == null) {
-			throw "unknown_symbol";
-		}
-
-		var requestLeftDate = new Date(startDateTimestamp * 1000);
-		console.log(requestLeftDate);
-
-		var year = requestLeftDate.getFullYear();
-		var month = requestLeftDate.getMonth();
-		var day = requestLeftDate.getDate();
-
-		var endtext = '';
-
-		if (endDateTimestamp) {
-			var requestRightDate = new Date(endDateTimestamp * 1000);
-			var endyear = requestRightDate.getFullYear();
-			var endmonth = requestRightDate.getMonth();
-			var endday = requestRightDate.getDate();
-
-			endtext = '&d=' + endmonth +
-			'&e=' + endday +
-			'&f=' + endyear;
-		}
-
-		if (resolution != "d" && resolution != "w" && resolution != "m") {
-			throw "Unsupported resolution: " + resolution;
-		}
-
-		var address = "ichart.finance.yahoo.com/table.csv?s=" + symbolInfo.name +
-			"&a=" + month +
-			"&b=" + day  +
-			"&c=" + year + endtext +
-			"&g=" + resolution +
-			"&ignore=.csv";
-
-		console.log("Requesting " + address);
-
-		var that = this;
-
-		httpGet(datafeedHost, address, function(result) {			
-			var content = JSON.stringify(convertYahooHistoryToUDFFormat(result));
-			var header = createDefaultHeader();
-			header["Content-Length"] = content.length;
-			response.writeHead(200, header);
-			response.write(content, null, function() {
-				response.end();
-			});			
-		}, function(error) {
-			// try another feed
-			requestHistoryFromQuandl(symbol, startDateTimestamp, endDateTimestamp, response);
-			lastHistoryErrorTime = Date.now();
-		});
-	}		
 
 	this.sendQuotes = function(tickersString, response) {
 		var tickersMap = {}; // maps YQL symbol to ticker
@@ -529,9 +369,9 @@ RequestProcessor = function(action, query, response) {
 
 		var options = {
 			host: "query.yahooapis.com",
-			path: "/v1/public/yql?q=" + encodeURIComponent(yql)
-			   	+ "&format=json"
-				+ "&env=store://datatables.org/alltableswithkeys",
+			path: "/v1/public/yql?q=" + encodeURIComponent(yql) +
+				"&format=json" +
+				"&env=store://datatables.org/alltableswithkeys"
 		};
 		// for debug purposes
 		// console.log(options.host + options.path);
@@ -556,61 +396,61 @@ RequestProcessor = function(action, query, response) {
 				response.end();
 			});
 		}).end();
-	}
+	};
 
 	this.sendNews = function(symbol, response) {
 		var options = {
 			host: "feeds.finance.yahoo.com",
-			path: "/rss/2.0/headline?s=" + symbol + "&region=US&lang=en-US",
+			path: "/rss/2.0/headline?s=" + symbol + "&region=US&lang=en-US"
 		};
 
 		proxyRequest(https, options, response);
-	}
+	};
 
 	this.sendFuturesmag = function(response) {
 		var options = {
 			host: "www.futuresmag.com",
-			path: "/rss/all",
+			path: "/rss/all"
 		};
 
 		proxyRequest(http, options, response);
-	}
+	};
 
 	try
 	{
-		if (action == "/config") {
+		if (action === "/config") {
 			this.sendConfig(response);
 		}
-		else if (action == "/symbols" && !!query["symbol"]) {
+		else if (action === "/symbols" && !!query["symbol"]) {
 			this.sendSymbolInfo(query["symbol"], response);
 		}
-		else if (action == "/search") {
+		else if (action === "/search") {
 			this.sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
-		else if (action == "/history") {
+		else if (action === "/history") {
 			this.sendSymbolHistory(query["symbol"], query["from"], query["to"], query["resolution"].toLowerCase(), response);
 		}
-		else if (action == "/quotes") {
+		else if (action === "/quotes") {
 			this.sendQuotes(query["symbols"], response);
 		}
-		else if (action == "/marks") {
+		else if (action === "/marks") {
 			this.sendMarks(response);
 		}
-		else if (action == "/time") {
+		else if (action === "/time") {
 			this.sendTime(response);
 		}
-		else if (action == "/timescale_marks") {
+		else if (action === "/timescale_marks") {
 			this.sendTimescaleMarks(response);
 		}
-		else if (action == "/news") {
+		else if (action === "/news") {
 			this.sendNews(query["symbol"], response);
 		}
-		else if (action == "/futuresmag") {
+		else if (action === "/futuresmag") {
 			this.sendFuturesmag(response);
 		}
 	}
 	catch (error) {
-		this.sendError(error, response)
+		this.sendError(error, response);
 	}
 }
 
@@ -644,7 +484,7 @@ getFreePort(function(port) {
 	http.createServer(function(request, response) {
 		var uri = url.parse(request.url, true);
 		var action = uri.pathname;
-		new RequestProcessor(action, uri.query, response);
+		return new RequestProcessor(action, uri.query, response);
 
 	}).listen(port);
 
