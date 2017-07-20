@@ -4,6 +4,9 @@
 //	This list should contain all the symbols available through your datafeed.
 //	The current version is extremely incomplete (as it's just a sample): Quandl has much more of them.
 
+"use strict";
+
+/* global exports */
 
 var symbols = [{"name":"A","description":"Agilent Technologies Inc.","exchange":"NYSE","type":"stock"},
 {"name":"AA","description":"Alcoa Inc.","exchange":"NYSE","type":"stock"},
@@ -139,7 +142,7 @@ function searchResultFromDatabaseItem(item) {
 exports.search = function (searchString, type, exchange, maxRecords) {
 	var MAX_SEARCH_RESULTS = !!maxRecords ? maxRecords : 50;
 	var results = []; // array of WeightedItem { item, weight }
-	var queryIsEmpty = !searchString || searchString.length == 0;
+	var queryIsEmpty = !searchString || searchString.length === 0;
 	var searchStringUpperCase = searchString.toUpperCase();
 
 	for (var i = 0; i < symbols.length; ++i) {
@@ -174,8 +177,12 @@ exports.search = function (searchString, type, exchange, maxRecords) {
 		.sort(function (weightedItem1, weightedItem2) { return weightedItem1.weight - weightedItem2.weight; })
 		.map(function (weightedItem) { return searchResultFromDatabaseItem(weightedItem.item); })
 		.slice(0, Math.min(results.length, MAX_SEARCH_RESULTS));
-}
+};
 
+
+exports.addSymbols = function(newSymbols) {
+	symbols = symbols.concat(newSymbols);
+};
 
 exports.symbolInfo = function (symbolName) {
 
@@ -186,10 +193,10 @@ exports.symbolInfo = function (symbolName) {
 	for (var i = 0; i < symbols.length; ++i) {
 		var item = symbols[i];
 
-		if (item.name.toUpperCase() == symbol && (exchange.length == 0 || exchange == item.exchange.toUpperCase())) {
+		if (item.name.toUpperCase() == symbol && (exchange.length === 0 || exchange == item.exchange.toUpperCase())) {
 			return item;
 		}
 	}
 
 	return null;
-}
+};
