@@ -19,6 +19,8 @@ var http = require("http");
 var quandlCache = {};
 
 var quandlCacheCleanupTime = 3 * 60 * 60 * 100; // 3 hours
+var yahooFailedStateCacheTime = 3 * 60 * 60 * 100; // 3 hours;
+var quandlMinimumDate = '1970-01-01';
 
 // this cache is intended to reduce number of requests to Quandl
 setInterval(function () {
@@ -26,17 +28,27 @@ setInterval(function () {
 }, quandlCacheCleanupTime);
 
 function dateForLogs() {
-	return (new Date).toISOString() + ': ';
+	return (new Date()).toISOString() + ': ';
 }
 
-function createDefaultHeader() {
-	return {
-		"Content-Type": "text/plain",
-		'Access-Control-Allow-Origin': '*'
-	};
+var defaultResponseHeader = {
+	"Content-Type": "text/plain",
+	'Access-Control-Allow-Origin': '*'
+};
+
+function sendJsonResponse(response, jsonData) {
+	response.writeHead(200, defaultResponseHeader);
+	response.write(JSON.stringify(jsonData));
+	response.end();
 }
 
-var defaultResponseHeader = createDefaultHeader();
+function dateToYMD(date) {
+	var obj = new Date(date);
+	var year = obj.getFullYear();
+	var month = obj.getMonth() + 1;
+	var day = obj.getDate();
+	return year + "-" + month + "-" + day;
+}
 
 function httpGet(datafeedHost, path, callback) {
 	var options = {
@@ -140,6 +152,7 @@ function convertYahooQuotesToUDFFormat(tickersMap, data) {
 		s: "ok",
 		d: []
 	};
+
 	[].concat(data.query.results.quote).forEach(function (quote) {
 		var ticker = tickersMap[quote.symbol];
 
@@ -207,6 +220,7 @@ function proxyRequest(controller, options, response) {
 
 function RequestProcessor(symbolsDatabase) {
 	this._symbolsDatabase = symbolsDatabase;
+	this._failedYahooTime = {};
 }
 
 function filterDataPeriod(data, fromSeconds, toSeconds) {
@@ -346,7 +360,7 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 	var marks = [
 		{
 			id: "tsm1",
-			time: now - day * 0,
+			time: now,
 			color: "red",
 			label: "A",
 			tooltip: ""
@@ -434,16 +448,8 @@ RequestProcessor.prototype._sendSymbolInfo = function (symbolName, response) {
 };
 
 RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimestamp, endDateTimestamp, resolution, response) {
-	function dateToYMD(date) {
-		var obj = new Date(date);
-		var year = obj.getFullYear();
-		var month = obj.getMonth() + 1;
-		var day = obj.getDate();
-		return year + "-" + month + "-" + day;
-	}
-
 	function sendResult(content) {
-		var header = createDefaultHeader();
+		var header = Object.assign({}, defaultResponseHeader);
 		header["Content-Length"] = content.length;
 		response.writeHead(200, header);
 		response.write(content, null, function () {
@@ -467,7 +473,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 	console.log(dateForLogs() + "Got history request for " + symbol + ", " + resolution + " from " + secondsToISO(startDateTimestamp)+ " to " + secondsToISO(endDateTimestamp));
 
 	// always request all data to reduce number of requests to quandl
-	var from = '1970-01-01';
+	var from = quandlMinimumDate;
 	var to = dateToYMD(Date.now());
 
 	var key = symbol + "|" + from + "|" + to;
@@ -506,6 +512,61 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 	});
 };
 
+RequestProcessor.prototype._quotesQuandlWorkaround = function (tickersMap) {
+	var from = quandlMinimumDate;
+	var to = dateToYMD(Date.now());
+
+	var result = {
+		s: "ok",
+		d: [],
+		source: 'Quandl',
+	};
+
+	Object.keys(tickersMap).forEach(function(symbol) {
+		var key = symbol + "|" + from + "|" + to;
+		var ticker = tickersMap[symbol];
+
+		var data = quandlCache[key];
+		var length = data === undefined ? 0 : data.c.length;
+
+		if (length > 0) {
+			var lastBar = {
+				o: data.o[length - 1],
+				h: data.o[length - 1],
+				l: data.o[length - 1],
+				c: data.o[length - 1],
+				v: data.o[length - 1],
+			};
+
+			result.d.push({
+				s: "ok",
+				n: ticker,
+				v: {
+					ch: 0,
+					chp: 0,
+
+					short_name: symbol,
+					exchange: '',
+					original_name: ticker,
+					description: ticker,
+
+					lp: lastBar.c,
+					ask: lastBar.c,
+					bid: lastBar.c,
+
+					open_price: lastBar.o,
+					high_price: lastBar.h,
+					low_price: lastBar.l,
+					prev_close_price: length > 1 ? data.c[length - 2] : lastBar.o,
+					volume: lastBar.v,
+				}
+			});
+		}
+	});
+
+	return result;
+};
+
 RequestProcessor.prototype._sendQuotes = function (tickersString, response) {
 	var tickersMap = {}; // maps YQL symbol to ticker
 
@@ -514,6 +575,14 @@ RequestProcessor.prototype._sendQuotes = function (tickersString, response) {
 		var yqlSymbol = ticker.replace(/.*:(.*)/, "$1");
 		tickersMap[yqlSymbol] = ticker;
 	});
+
+	if (this._failedYahooTime[tickersString] && Date.now() - this._failedYahooTime[tickersString] < yahooFailedStateCacheTime) {
+		sendJsonResponse(response, this._quotesQuandlWorkaround(tickersMap));
+		console.log("Quotes request : " + tickersString + ' processed from quandl cache');
+		return;
+	}
+
+	var that = this;
 
 	var yql = "env 'store://datatables.org/alltableswithkeys'; select * from yahoo.finance.quotes where symbol in ('" + Object.keys(tickersMap).join("','") + "')";
 	console.log("Quotes query: " + yql);
@@ -535,19 +604,21 @@ RequestProcessor.prototype._sendQuotes = function (tickersString, response) {
 		});
 
 		res.on('end', function () {
-			if (res.statusCode !== 200) {
-				response.writeHead(200, defaultResponseHeader);
-				response.write(JSON.stringify({
-					s: 'error',
-					errmsg: 'Yahoo fails'
-				}));
-				response.end();
-				return;
+			var jsonResponse = { s: 'error' };
+
+			if (res.statusCode === 200) {
+				jsonResponse = convertYahooQuotesToUDFFormat(tickersMap, JSON.parse(result));
+			} else {
+				console.error('Yahoo Fails with code ' + res.statusCode);
 			}
-			response.writeHead(200, defaultResponseHeader);
-			response.write(JSON.stringify(convertYahooQuotesToUDFFormat(
-				tickersMap, JSON.parse(result))));
-			response.end();
+
+			if (jsonResponse.s === 'error') {
+				that._failedYahooTime[tickersString] = Date.now();
+				jsonResponse = that._quotesQuandlWorkaround(tickersMap);
+				console.log("Quotes request : " + tickersString + ' processed from quandl');
+			}
+
+			sendJsonResponse(response, jsonResponse);
 		});
 	}).end();
 };
@@ -568,10 +639,6 @@ RequestProcessor.prototype._sendFuturesmag = function (response) {
 	};
 
 	proxyRequest(http, options, response);
-};
-
-RequestProcessor.prototype._defaultResponseHeader = function() {
-	return defaultResponseHeader;
 };
 
 RequestProcessor.prototype.processRequest = function (action, query, response) {
