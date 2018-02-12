@@ -224,7 +224,7 @@ function RequestProcessor(symbolsDatabase) {
 }
 
 function filterDataPeriod(data, fromSeconds, toSeconds) {
-	if (!data || !data.t || data.t.length === 0) {
+	if (!data || !data.t) {
 		return data;
 	}
 
@@ -247,6 +247,12 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 	fromIndex = fromIndex || 0;
 	toIndex = toIndex ? toIndex + 1 : times.length;
 
+	var s = data.s;
+
+	if (toSeconds < times[0]) {
+		s = 'no_data';
+	}
+
 	return {
 		t: data.t.slice(fromIndex, toIndex),
 		o: data.o.slice(fromIndex, toIndex),
@@ -254,7 +260,7 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 		l: data.l.slice(fromIndex, toIndex),
 		c: data.c.slice(fromIndex, toIndex),
 		v: data.v.slice(fromIndex, toIndex),
-		s: data.s
+		s: s
 	};
 }
 
