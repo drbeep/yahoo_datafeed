@@ -20,13 +20,15 @@ var http = require("http");
 
 var quandlCache = {};
 
-var quandlCacheCleanupTime = 3 * 60 * 60 * 100; // 3 hours
-var yahooFailedStateCacheTime = 3 * 60 * 60 * 100; // 3 hours;
+var quandlCacheCleanupTime = 3 * 60 * 60 * 1000; // 3 hours
+var quandlKeysValidateTime = 15 * 60 * 1000; // 15 minutes
+var yahooFailedStateCacheTime = 3 * 60 * 60 * 1000; // 3 hours;
 var quandlMinimumDate = '1970-01-01';
 
 // this cache is intended to reduce number of requests to Quandl
 setInterval(function () {
 	quandlCache = {};
+	console.warn(dateForLogs() + 'Quandl cache invalidated');
 }, quandlCacheCleanupTime);
 
 function dateForLogs() {
@@ -72,11 +74,11 @@ function markQuandlKeyAsInvalid(key) {
 
 	invalidQuandlKeys.push(key);
 
-	console.warn('Quandl key invalidated ' + key);
+	console.warn(dateForLogs() + 'Quandl key invalidated ' + key);
 
 	setTimeout(function() {
-		console.log("Quandl key restored: " + invalidQuandlKeys.shift());
-	}, quandlCacheCleanupTime);
+		console.log(dateForLogs() + "Quandl key restored: " + invalidQuandlKeys.shift());
+	}, quandlKeysValidateTime);
 }
 
 function sendError(error, response) {
@@ -113,7 +115,7 @@ function httpGet(datafeedHost, path, callback) {
 	req.on('socket', function (socket) {
 		socket.setTimeout(5000);
 		socket.on('timeout', function () {
-			console.log('timeout');
+			console.log(dateForLogs() + 'timeout');
 			req.abort();
 		});
 	});
@@ -174,7 +176,7 @@ function convertQuandlHistoryToUDFFormat(data) {
 function convertYahooQuotesToUDFFormat(tickersMap, data) {
 	if (!data.query || !data.query.results) {
 		var errmsg = "ERROR: empty quotes response: " + JSON.stringify(data);
-		console.log(errmsg);
+		console.log(dateForLogs() + errmsg);
 		return {
 			s: "error",
 			errmsg: errmsg
