@@ -263,6 +263,13 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 		return data;
 	}
 
+	if (data.t[data.t.length - 1] < fromSeconds) {
+		return {
+			s: 'no_data',
+			nextTime: data.t[data.t.length - 1]
+		};
+	}
+
 	var fromIndex = null;
 	var toIndex = null;
 	var times = data.t;
@@ -287,6 +294,8 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 	if (toSeconds < times[0]) {
 		s = 'no_data';
 	}
+
+	toIndex = Math.min(fromIndex + 1000, toIndex); // do not send more than 1000 bars for server capacity reasons
 
 	return {
 		t: data.t.slice(fromIndex, toIndex),
