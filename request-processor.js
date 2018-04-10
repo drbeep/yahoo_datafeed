@@ -13,7 +13,7 @@
 
 "use strict";
 
-var version = '2.0.1';
+var version = '2.0.2';
 
 var https = require("https");
 var http = require("http");
