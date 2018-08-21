@@ -157,14 +157,18 @@ function convertQuandlHistoryToUDFFormat(data) {
 		var datatable = json.datatable;
 		var idx = columnIndices(datatable.columns);
 
-		datatable.data.forEach(function (row) {
-			result.t.push(parseDate(row[idx.date]) / 1000);
-			result.o.push(row[idx.open]);
-			result.h.push(row[idx.high]);
-			result.l.push(row[idx.low]);
-			result.c.push(row[idx.close]);
-			result.v.push(row[idx.volume]);
-		});
+		datatable.data
+			.sort(function (row1, row2) {
+				return parseDate(row1[idx.date]) - parseDate(row2[idx.date]);
+			})
+			.forEach(function (row) {
+				result.t.push(parseDate(row[idx.date]) / 1000);
+				result.o.push(row[idx.open]);
+				result.h.push(row[idx.high]);
+				result.l.push(row[idx.low]);
+				result.c.push(row[idx.close]);
+				result.v.push(row[idx.volume]);
+			});
 
 	} catch (error) {
 		return null;
