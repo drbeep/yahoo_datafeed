@@ -22,7 +22,6 @@ var quandlCache = {};
 
 var quandlCacheCleanupTime = 3 * 60 * 60 * 1000; // 3 hours
 var quandlKeysValidateTime = 15 * 60 * 1000; // 15 minutes
-var yahooFailedStateCacheTime = 3 * 60 * 60 * 1000; // 3 hours;
 var quandlMinimumDate = '1970-01-01';
 
 // this cache is intended to reduce number of requests to Quandl
@@ -177,61 +176,6 @@ function convertQuandlHistoryToUDFFormat(data) {
 	return result;
 }
 
-function convertYahooQuotesToUDFFormat(tickersMap, data) {
-	if (!data.query || !data.query.results) {
-		var errmsg = "ERROR: empty quotes response: " + JSON.stringify(data);
-		console.log(dateForLogs() + errmsg);
-		return {
-			s: "error",
-			errmsg: errmsg
-		};
-	}
-
-	var result = {
-		s: "ok",
-		d: []
-	};
-
-	[].concat(data.query.results.quote).forEach(function (quote) {
-		var ticker = tickersMap[quote.symbol];
-
-		// this field is an error token
-		if (quote["ErrorIndicationreturnedforsymbolchangedinvalid"] || !quote.StockExchange) {
-			result.d.push({
-				s: "error",
-				n: ticker,
-				v: {}
-			});
-			return;
-		}
-
-		result.d.push({
-			s: "ok",
-			n: ticker,
-			v: {
-				ch: +(quote.ChangeRealtime || quote.Change),
-				chp: +((quote.PercentChange || quote.ChangeinPercent) && (quote.PercentChange || quote.ChangeinPercent).replace(/[+-]?(.*)%/, "$1")),
-
-				short_name: quote.Symbol,
-				exchange: quote.StockExchange,
-				original_name: quote.StockExchange + ":" + quote.Symbol,
-				description: quote.Name,
-
-				lp: +quote.LastTradePriceOnly,
-				ask: +quote.AskRealtime,
-				bid: +quote.BidRealtime,
-
-				open_price: +quote.Open,
-				high_price: +quote.DaysHigh,
-				low_price: +quote.DaysLow,
-				prev_close_price: +quote.PreviousClose,
-				volume: +quote.Volume,
-			}
-		});
-	});
-	return result;
-}
-
 function proxyRequest(controller, options, response) {
 	controller.request(options, function (res) {
 		var result = '';
@@ -259,7 +203,6 @@ function proxyRequest(controller, options, response) {
 
 function RequestProcessor(symbolsDatabase) {
 	this._symbolsDatabase = symbolsDatabase;
-	this._failedYahooTime = {};
 }
 
 function filterDataPeriod(data, fromSeconds, toSeconds) {
@@ -651,51 +594,8 @@ RequestProcessor.prototype._sendQuotes = function (tickersString, response) {
 		tickersMap[yqlSymbol] = ticker;
 	});
 
-	if (this._failedYahooTime[tickersString] && Date.now() - this._failedYahooTime[tickersString] < yahooFailedStateCacheTime) {
-		sendJsonResponse(response, this._quotesQuandlWorkaround(tickersMap));
-		console.log("Quotes request : " + tickersString + ' processed from quandl cache');
-		return;
-	}
-
-	var that = this;
-
-	var yql = "env 'store://datatables.org/alltableswithkeys'; select * from yahoo.finance.quotes where symbol in ('" + Object.keys(tickersMap).join("','") + "')";
-	console.log("Quotes query: " + yql);
-
-	var options = {
-		host: "query.yahooapis.com",
-		path: "/v1/public/yql?q=" + encodeURIComponent(yql) +
-		"&format=json" +
-		"&env=store://datatables.org/alltableswithkeys"
-	};
-	// for debug purposes
-	// console.log(options.host + options.path);
-
-	http.request(options, function (res) {
-		var result = '';
-
-		res.on('data', function (chunk) {
-			result += chunk;
-		});
-
-		res.on('end', function () {
-			var jsonResponse = { s: 'error' };
-
-			if (res.statusCode === 200) {
-				jsonResponse = convertYahooQuotesToUDFFormat(tickersMap, JSON.parse(result));
-			} else {
-				console.error('Yahoo Fails with code ' + res.statusCode);
-			}
-
-			if (jsonResponse.s === 'error') {
-				that._failedYahooTime[tickersString] = Date.now();
-				jsonResponse = that._quotesQuandlWorkaround(tickersMap);
-				console.log("Quotes request : " + tickersString + ' processed from quandl');
-			}
-
-			sendJsonResponse(response, jsonResponse);
-		});
-	}).end();
+	sendJsonResponse(response, this._quotesQuandlWorkaround(tickersMap));
+	console.log("Quotes request : " + tickersString + ' processed from quandl cache');
 };
 
 RequestProcessor.prototype._sendNews = function (symbol, response) {
