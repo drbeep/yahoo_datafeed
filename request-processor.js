@@ -255,6 +255,15 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 	};
 }
 
+function removeExchangeFromSymbol(symbol) {
+	var result = symbol.split(':');
+	return result[result.length - 1];
+}
+
+function removeExchangeFromSymbols(symbols) {
+	return symbols.split(',').map((symbol) => removeExchangeFromSymbol(symbol)).join(',');
+}
+
 RequestProcessor.prototype._sendConfig = function (response) {
 
 	var config = {
@@ -410,8 +419,8 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 
 	return {
 		"name": symbolInfo.name,
-		"exchange-traded": symbolInfo.exchange,
-		"exchange-listed": symbolInfo.exchange,
+		"exchange-traded": symbolInfo.exchange.toUpperCase(),
+		"exchange-listed": symbolInfo.exchange.toUpperCase(),
 		"timezone": "America/New_York",
 		"minmov": 1,
 		"minmov2": 0,
@@ -423,7 +432,7 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		"type": symbolInfo.type,
 		"supported_resolutions": ["D", "2D", "3D", "W", "3W", "M", "6M"],
 		"pricescale": 100,
-		"ticker": symbolInfo.name.toUpperCase()
+		"ticker": (symbolInfo.exchange + ':' + symbolInfo.name).toUpperCase(),
 	};
 };
 
@@ -622,16 +631,16 @@ RequestProcessor.prototype.processRequest = function (action, query, response) {
 			this._sendConfig(response);
 		}
 		else if (action === "/symbols" && !!query["symbol"]) {
-			this._sendSymbolInfo(query["symbol"], response);
+			this._sendSymbolInfo(removeExchangeFromSymbol(query["symbol"]), response);
 		}
 		else if (action === "/search") {
 			this._sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
 		else if (action === "/history") {
-			this._sendSymbolHistory(query["symbol"], query["from"], query["to"], query["resolution"].toLowerCase(), response);
+			this._sendSymbolHistory(removeExchangeFromSymbol(query["symbol"]), query["from"], query["to"], query["resolution"].toLowerCase(), response);
 		}
 		else if (action === "/quotes") {
-			this._sendQuotes(query["symbols"], response);
+			this._sendQuotes(removeExchangeFromSymbols(query["symbols"]), response);
 		}
 		else if (action === "/marks") {
 			this._sendMarks(response);
@@ -643,7 +652,7 @@ RequestProcessor.prototype.processRequest = function (action, query, response) {
 			this._sendTimescaleMarks(response);
 		}
 		else if (action === "/news") {
-			this._sendNews(query["symbol"], response);
+			this._sendNews(removeExchangeFromSymbol(query["symbol"]), response);
 		}
 		else if (action === "/futuresmag") {
 			this._sendFuturesmag(response);
