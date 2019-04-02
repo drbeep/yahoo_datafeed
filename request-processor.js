@@ -609,8 +609,8 @@ RequestProcessor.prototype._sendNews = function (symbol, response) {
 
 RequestProcessor.prototype._sendFuturesmag = function (response) {
 	var options = {
-		host: "www.futuresmag.com",
-		path: "/rss/all"
+		host: "www.oilprice.com",
+		path: "/rss/main"
 	};
 
 	proxyRequest(http, options, response);
