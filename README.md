@@ -1,18 +1,18 @@
-UDF-compatible Quandl/Yahoo datafeed
+UDF-compatible Quandl/Yahoo data server
 ==============
 
-This repository contains a sample implementation of server-side UDF-compatible data source.
+This repository contains a sample of UDF-compatible data server.
 
-Register for free at www.quandl.com to get free API key.
+Register for free at www.quandl.com to get a free API key.
 
-Use NodeJS to launch yahoo.js with your Quandl key:
+Use NodeJS to launch `yahoo.js` with your Quandl key:
 
 ```bash
 QUANDL_API_KEY=YOUR_KEY nodejs yahoo.js
 ```
-And change source URL in index.html file of Charting Library:
+Change the source URL in `index.html` file of the Charting Library:
 
 ```javascript
 datafeed: new Datafeeds.UDFCompatibleDatafeed("http://localhost:8888")
 ```
-Save file and restart Charting Library server.
+Save the file and restart the Charting Library server.
