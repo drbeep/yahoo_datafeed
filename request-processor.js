@@ -314,7 +314,7 @@ RequestProcessor.prototype._sendConfig = function (response) {
 
 
 RequestProcessor.prototype._sendMarks = function (response) {
-	var now = new Date();
+	var now = new Date(this.lastBarTime) || new Date();
 	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
 	var day = 60 * 60 * 24;
 
@@ -341,7 +341,7 @@ RequestProcessor.prototype._sendTime = function (response) {
 };
 
 RequestProcessor.prototype._sendTimescaleMarks = function (response) {
-	var now = new Date();
+	var now = new Date(this.lastBarTime) || new Date();
 	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
 	var day = 60 * 60 * 24;
 
@@ -468,6 +468,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 
 	if (quandlCache[key]) {
 		var dataFromCache = filterDataPeriod(quandlCache[key], startDateTimestamp, endDateTimestamp);
+		this.lastBarTime = this.lastBarTime || +endDateTimestamp * 1000;
 		logForData(dataFromCache, key, true);
 		sendResult(JSON.stringify(dataFromCache));
 		return;
