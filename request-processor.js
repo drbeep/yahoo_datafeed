@@ -314,7 +314,7 @@ RequestProcessor.prototype._sendConfig = function (response) {
 
 
 RequestProcessor.prototype._sendMarks = function (response) {
-	var now = new Date(this.lastBarTime) || new Date();
+	var now = new Date(1522108800000);
 	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
 	var day = 60 * 60 * 24;
 
@@ -322,7 +322,7 @@ RequestProcessor.prototype._sendMarks = function (response) {
 		id: [0, 1, 2, 3, 4, 5],
 		time: [now, now - day * 4, now - day * 7, now - day * 7, now - day * 15, now - day * 30],
 		color: ["red", "blue", "green", "red", "blue", "green"],
-		text: ["Today", "4 days back", "7 days back + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "7 days back once again", "15 days back", "30 days back"],
+		text: ["Red", "Blue", "Green + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "Red again", "Blue", "Green"],
 		label: ["A", "B", "CORE", "D", "EURO", "F"],
 		labelFontColor: ["white", "white", "red", "#FFFFFF", "white", "#000"],
 		minSize: [14, 28, 7, 40, 7, 14]
@@ -341,7 +341,7 @@ RequestProcessor.prototype._sendTime = function (response) {
 };
 
 RequestProcessor.prototype._sendTimescaleMarks = function (response) {
-	var now = new Date(this.lastBarTime) || new Date();
+	var now = new Date(1522108800000);
 	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
 	var day = 60 * 60 * 24;
 
@@ -468,7 +468,6 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 
 	if (quandlCache[key]) {
 		var dataFromCache = filterDataPeriod(quandlCache[key], startDateTimestamp, endDateTimestamp);
-		this.lastBarTime = this.lastBarTime || +endDateTimestamp * 1000;
 		logForData(dataFromCache, key, true);
 		sendResult(JSON.stringify(dataFromCache));
 		return;
