@@ -314,13 +314,19 @@ RequestProcessor.prototype._sendConfig = function (response) {
 
 
 RequestProcessor.prototype._sendMarks = function (response) {
-	var now = new Date(1522108800000);
-	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
+	var lastMarkTimestamp = 1522108800;
 	var day = 60 * 60 * 24;
 
 	var marks = {
 		id: [0, 1, 2, 3, 4, 5],
-		time: [now, now - day * 4, now - day * 7, now - day * 7, now - day * 15, now - day * 30],
+		time: [
+			lastMarkTimestamp,
+			lastMarkTimestamp - day * 4,
+			lastMarkTimestamp - day * 7,
+			lastMarkTimestamp - day * 7,
+			lastMarkTimestamp - day * 15,
+			lastMarkTimestamp - day * 30
+		],
 		color: ["red", "blue", "green", "red", "blue", "green"],
 		text: ["Red", "Blue", "Green + Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", "Red again", "Blue", "Green"],
 		label: ["A", "B", "CORE", "D", "EURO", "F"],
@@ -341,42 +347,41 @@ RequestProcessor.prototype._sendTime = function (response) {
 };
 
 RequestProcessor.prototype._sendTimescaleMarks = function (response) {
-	var now = new Date(1522108800000);
-	now = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())) / 1000;
+	var lastMarkTimestamp = 1522108800;
 	var day = 60 * 60 * 24;
 
 	var marks = [
 		{
 			id: "tsm1",
-			time: now,
+			time: lastMarkTimestamp,
 			color: "red",
 			label: "A",
 			tooltip: ""
 		},
 		{
 			id: "tsm2",
-			time: now - day * 4,
+			time: lastMarkTimestamp - day * 4,
 			color: "blue",
 			label: "D",
-			tooltip: ["Dividends: $0.56", "Date: " + new Date((now - day * 4) * 1000).toDateString()]
+			tooltip: ["Dividends: $0.56", "Date: " + new Date((lastMarkTimestamp - day * 4) * 1000).toDateString()]
 		},
 		{
 			id: "tsm3",
-			time: now - day * 7,
+			time: lastMarkTimestamp - day * 7,
 			color: "green",
 			label: "D",
-			tooltip: ["Dividends: $3.46", "Date: " + new Date((now - day * 7) * 1000).toDateString()]
+			tooltip: ["Dividends: $3.46", "Date: " + new Date((lastMarkTimestamp - day * 7) * 1000).toDateString()]
 		},
 		{
 			id: "tsm4",
-			time: now - day * 15,
+			time: lastMarkTimestamp - day * 15,
 			color: "#999999",
 			label: "E",
 			tooltip: ["Earnings: $3.44", "Estimate: $3.60"]
 		},
 		{
 			id: "tsm7",
-			time: now - day * 30,
+			time: lastMarkTimestamp - day * 30,
 			color: "red",
 			label: "E",
 			tooltip: ["Earnings: $5.40", "Estimate: $5.00"]
