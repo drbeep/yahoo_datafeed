@@ -1,5 +1,4 @@
-UDF-compatible Yahoo datafeed
-==============
+# This repo is not supported any more
 
-This repository contains a sample implementation of server-side UDF-compatible data source.
-Use nodejs to launch yahoo.js
+This repository contains a sample implementation of server-side UDF-compatible data source for TradingView Chartling Library.
+It's abandoned for 4+ years by now.
