@@ -463,6 +463,14 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 		console.log(dateForLogs() + "Return QUANDL result" + (isCached ? " from cache" : "") + ": " + key + ", from " + secondsToISO(fromCacheTime) + " to " + secondsToISO(toCacheTime));
 	}
 
+	symbol = (symbol || '').trim();
+
+	if (symbol.length === 0) {
+		console.log(dateForLogs() + "Invalid symbol=" + symbol);
+		sendError('Invalid symbol', response);
+		return;
+	}
+
 	console.log(dateForLogs() + "Got history request for " + symbol + ", " + resolution + " from " + secondsToISO(startDateTimestamp)+ " to " + secondsToISO(endDateTimestamp));
 
 	// always request all data to reduce number of requests to quandl
