@@ -20,7 +20,7 @@ var http = require("http");
 
 var quandlCache = {};
 
-var quandlCacheCleanupTime = 24 * 60 * 60 * 1000; // 3 hours
+var quandlCacheCleanupTime = 24 * 60 * 60 * 1000; // 24 hours
 var quandlKeysValidateTime = 15 * 60 * 1000; // 15 minutes
 var quandlMinimumDate = '1970-01-01';
 
