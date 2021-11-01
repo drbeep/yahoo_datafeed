@@ -641,7 +641,7 @@ RequestProcessor.prototype.processRequest = function (action, query, response) {
 			this._sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
 		else if (action === "/history") {
-			this._sendSymbolHistory(query["symbol"], query["from"], query["to"], query["resolution"].toLowerCase(), response);
+			this._sendSymbolHistory(query["symbol"], query["from"], query["to"], (query["resolution"] || "").toLowerCase(), response);
 		}
 		else if (action === "/quotes") {
 			this._sendQuotes(query["symbols"], response);
