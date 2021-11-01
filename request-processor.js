@@ -13,14 +13,14 @@
 
 "use strict";
 
-var version = '2.0.4';
+var version = '2.1.0';
 
 var https = require("https");
 var http = require("http");
 
 var quandlCache = {};
 
-var quandlCacheCleanupTime = 3 * 60 * 60 * 1000; // 3 hours
+var quandlCacheCleanupTime = 24 * 60 * 60 * 1000; // 3 hours
 var quandlKeysValidateTime = 15 * 60 * 1000; // 15 minutes
 var quandlMinimumDate = '1970-01-01';
 
