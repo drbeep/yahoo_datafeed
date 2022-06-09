@@ -390,10 +390,10 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 		},
 		{
 			id: "tsm8",
-			time: now - day * 30,
+			time: lastMarkTimestamp - day * 30,
 			color: "orange",
 			label: "S",
-			tooltip: ["Split: 4/1", "Date: " + new Date((now - day * 30) * 1000).toDateString()],
+			tooltip: ["Split: 4/1", "Date: " + new Date((lastMarkTimestamp - day * 30) * 1000).toDateString()],
 		},
 	];
 
