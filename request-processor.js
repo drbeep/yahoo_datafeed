@@ -375,16 +375,25 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 		{
 			id: "tsm4",
 			time: lastMarkTimestamp - day * 15,
-			color: "#999999",
+			color: "red",
 			label: "E",
-			tooltip: ["Earnings: $3.44", "Estimate: $3.60"]
+			tooltip: ["Earnings: $3.44", "Estimate: $3.60"],
+			shape: 'earningDown',
 		},
 		{
 			id: "tsm7",
 			time: lastMarkTimestamp - day * 30,
-			color: "red",
+			color: "green",
 			label: "E",
-			tooltip: ["Earnings: $5.40", "Estimate: $5.00"]
+			tooltip: ["Earnings: $5.40", "Estimate: $5.00"],
+			shape: 'earningUp',
+		},
+		{
+			id: "tsm8",
+			time: lastMarkTimestamp - day * 30,
+			color: "orange",
+			label: "S",
+			tooltip: ["Split: 4/1", "Date: " + new Date((lastMarkTimestamp - day * 30) * 1000).toDateString()],
 		},
 	];
 
