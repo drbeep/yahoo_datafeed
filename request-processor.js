@@ -354,28 +354,28 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 		{
 			id: "tsm1",
 			time: lastMarkTimestamp,
-			color: "red",
+			color: "#F23645",
 			label: "A",
 			tooltip: ""
 		},
 		{
 			id: "tsm2",
 			time: lastMarkTimestamp - day * 4,
-			color: "blue",
+			color: "#2962FF",
 			label: "D",
 			tooltip: ["Dividends: $0.56", "Date: " + new Date((lastMarkTimestamp - day * 4) * 1000).toDateString()]
 		},
 		{
 			id: "tsm3",
 			time: lastMarkTimestamp - day * 7,
-			color: "green",
+			color: "#089981",
 			label: "D",
 			tooltip: ["Dividends: $3.46", "Date: " + new Date((lastMarkTimestamp - day * 7) * 1000).toDateString()]
 		},
 		{
 			id: "tsm4",
 			time: lastMarkTimestamp - day * 15,
-			color: "red",
+			color: "#F23645",
 			label: "E",
 			tooltip: ["Earnings: $3.44", "Estimate: $3.60"],
 			shape: 'earningDown',
@@ -383,7 +383,7 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 		{
 			id: "tsm7",
 			time: lastMarkTimestamp - day * 30,
-			color: "green",
+			color: "#089981",
 			label: "E",
 			tooltip: ["Earnings: $5.40", "Estimate: $5.00"],
 			shape: 'earningUp',
@@ -391,7 +391,7 @@ RequestProcessor.prototype._sendTimescaleMarks = function (response) {
 		{
 			id: "tsm8",
 			time: lastMarkTimestamp - day * 30,
-			color: "orange",
+			color: "#FF9800",
 			label: "S",
 			tooltip: ["Split: 4/1", "Date: " + new Date((lastMarkTimestamp - day * 30) * 1000).toDateString()],
 		},
