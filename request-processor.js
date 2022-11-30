@@ -205,12 +205,15 @@ function RequestProcessor(symbolsDatabase) {
 	this._symbolsDatabase = symbolsDatabase;
 }
 
-function filterDataPeriod(data, fromSeconds, toSeconds) {
+function filterDataPeriod(data, fromSeconds, toSeconds, countback) {
 	if (!data || !data.t) {
 		return data;
 	}
 
-	if (data.t[data.t.length - 1] < fromSeconds) {
+	var countbackInt = parseInt(countback, 10);
+	var countbackValid = !Number.isNaN(countbackInt) && countbackInt > 0;
+
+	if (data.t[data.t.length - 1] < fromSeconds && !countbackValid) {
 		return {
 			s: 'no_data',
 			nextTime: data.t[data.t.length - 1]
@@ -242,7 +245,18 @@ function filterDataPeriod(data, fromSeconds, toSeconds) {
 		s = 'no_data';
 	}
 
-	toIndex = Math.min(fromIndex + 1000, toIndex); // do not send more than 1000 bars for server capacity reasons
+	if (countbackValid) {
+		fromIndex = Math.max(0, toIndex - countbackInt);
+	}
+
+	/**
+	 * ! Do not send more than 1000 bars for server capacity reasons !
+	 *
+	 * We are limiting the number of data points returned by sending the latest portion (newest dates).
+	 * The datafeed should be aware of this behavior, so it can request the earlier data again.
+	 * (CL won't ask for the missing data again, so the datafeed API needs to handle bundling the multiple requests together)
+	 */
+	fromIndex = Math.max(toIndex - 1000, fromIndex);
 
 	return {
 		t: data.t.slice(fromIndex, toIndex),
@@ -449,7 +463,7 @@ RequestProcessor.prototype._sendSymbolInfo = function (symbolName, response) {
 	response.end();
 };
 
-RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimestamp, endDateTimestamp, resolution, response) {
+RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimestamp, endDateTimestamp, resolution, countback, response) {
 	function sendResult(content) {
 		var header = Object.assign({}, defaultResponseHeader);
 		header["Content-Length"] = content.length;
@@ -480,7 +494,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 		return;
 	}
 
-	console.log(dateForLogs() + "Got history request for " + symbol + ", " + resolution + " from " + secondsToISO(startDateTimestamp)+ " to " + secondsToISO(endDateTimestamp));
+	console.log(dateForLogs() + "Got history request for " + symbol + ", " + resolution + " from " + secondsToISO(startDateTimestamp)+ " to " + secondsToISO(endDateTimestamp) + (countback ? " [countback: " + countback + "]": ""));
 
 	// always request all data to reduce number of requests to quandl
 	var from = quandlMinimumDate;
@@ -489,7 +503,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 	var key = symbol + "|" + from + "|" + to;
 
 	if (quandlCache[key]) {
-		var dataFromCache = filterDataPeriod(quandlCache[key], startDateTimestamp, endDateTimestamp);
+		var dataFromCache = filterDataPeriod(quandlCache[key], startDateTimestamp, endDateTimestamp, countback);
 		logForData(dataFromCache, key, true);
 		sendResult(JSON.stringify(dataFromCache));
 		return;
@@ -506,7 +520,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 	var address = "/api/v3/datatables/WIKI/PRICES.json" +
 		"?api_key=" + quandlKey + // you should create a free account on quandl.com to get this key
 		"&ticker=" + symbol +
-		"&date.gte=" + from +
+		"&date.gte=" + from + // this is the min quandl data (so we will get the full history and reduce number of requests)
 		"&date.lte=" + to;
 
 	console.log(dateForLogs() + "Sending request to quandl  " + key + ". url=" + address);
@@ -546,7 +560,7 @@ RequestProcessor.prototype._sendSymbolHistory = function (symbol, startDateTimes
 			console.log(dateForLogs() + "Parsing returned empty result.");
 		}
 
-		var filteredData = filterDataPeriod(data, startDateTimestamp, endDateTimestamp);
+		var filteredData = filterDataPeriod(data, startDateTimestamp, endDateTimestamp, countback);
 		logForData(filteredData, key, false);
 		sendResult(JSON.stringify(filteredData));
 	});
@@ -650,7 +664,7 @@ RequestProcessor.prototype.processRequest = function (action, query, response) {
 			this._sendSymbolSearchResults(query["query"], query["type"], query["exchange"], query["limit"], response);
 		}
 		else if (action === "/history") {
-			this._sendSymbolHistory(query["symbol"], query["from"], query["to"], (query["resolution"] || "").toLowerCase(), response);
+			this._sendSymbolHistory(query["symbol"], query["from"], query["to"], (query["resolution"] || "").toLowerCase(), query["countback"], response);
 		}
 		else if (action === "/quotes") {
 			this._sendQuotes(query["symbols"], response);
