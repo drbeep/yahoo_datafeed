@@ -446,7 +446,7 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		"pointvalue": 1,
 		"session": "0930-1630",
 		"has_intraday": false,
-		"has_no_volume": symbolInfo.type !== "stock",
+		"visible_plots_set": symbolInfo.type !== "stock" ? 'ohlc' : 'ohlcv',
 		"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
 		"type": symbolInfo.type,
 		"supported_resolutions": ["D", "2D", "3D", "W", "3W", "M", "6M"],
