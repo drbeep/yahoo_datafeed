@@ -18,6 +18,8 @@ var version = '2.1.0';
 var https = require("https");
 var http = require("http");
 
+var logos = require("./logos");
+
 var quandlCache = {};
 
 var quandlCacheCleanupTime = 24 * 60 * 60 * 1000; // 24 hours
@@ -436,7 +438,7 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		throw "unknown_symbol " + symbolName;
 	}
 
-	return {
+	var result = {
 		"name": symbolInfo.name,
 		"exchange-traded": symbolInfo.exchange,
 		"exchange-listed": symbolInfo.exchange,
@@ -453,6 +455,13 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		"pricescale": 100,
 		"ticker": symbolInfo.name.toUpperCase()
 	};
+
+	var logoUrls = logos.getSymbolLogos(symbolInfo.name);
+	if (logoUrls) {
+		result.logo_urls = logoUrls;
+	}
+
+	return result;
 };
 
 RequestProcessor.prototype._sendSymbolInfo = function (symbolName, response) {
