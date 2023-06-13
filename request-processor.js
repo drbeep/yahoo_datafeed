@@ -18,6 +18,8 @@ var version = '2.1.0';
 var https = require("https");
 var http = require("http");
 
+var logos = require("./logos");
+
 var quandlCache = {};
 
 var quandlCacheCleanupTime = 24 * 60 * 60 * 1000; // 24 hours
@@ -436,7 +438,7 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		throw "unknown_symbol " + symbolName;
 	}
 
-	return {
+	var result = {
 		"name": symbolInfo.name,
 		"exchange-traded": symbolInfo.exchange,
 		"exchange-listed": symbolInfo.exchange,
@@ -446,13 +448,20 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 		"pointvalue": 1,
 		"session": "0930-1630",
 		"has_intraday": false,
-		"has_no_volume": symbolInfo.type !== "stock",
+		"visible_plots_set": symbolInfo.type !== "stock" ? 'ohlc' : 'ohlcv',
 		"description": symbolInfo.description.length > 0 ? symbolInfo.description : symbolInfo.name,
 		"type": symbolInfo.type,
 		"supported_resolutions": ["D", "2D", "3D", "W", "3W", "M", "6M"],
 		"pricescale": 100,
 		"ticker": symbolInfo.name.toUpperCase()
 	};
+
+	var logoUrls = logos.getSymbolLogos(symbolInfo.name);
+	if (logoUrls) {
+		result.logo_urls = logoUrls;
+	}
+
+	return result;
 };
 
 RequestProcessor.prototype._sendSymbolInfo = function (symbolName, response) {

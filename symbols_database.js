@@ -6,6 +6,8 @@
 
 "use strict";
 
+var logos = require("./logos");
+
 /* global exports */
 
 var symbols = [{"name":"A","description":"Agilent Technologies Inc.","exchange":"NYSE","type":"stock"},
@@ -129,13 +131,22 @@ var symbols = [{"name":"A","description":"Agilent Technologies Inc.","exchange":
 
 
 function searchResultFromDatabaseItem(item) {
-	return {
+	const result = {
 		symbol: item.name,
 		full_name: item.name,
 		description: item.description,
 		exchange: item.exchange,
-		type: item.type
+		type: item.type,
 	};
+	const logoUrls = logos.getSymbolLogos(item.name);
+	if (logoUrls) {
+		result.logo_urls = logoUrls;
+	}
+	const exchangeLogo = logos.getExchangeLogoUrl(item.exchange);
+	if (exchangeLogo) {
+		result.exchange_logo = exchangeLogo;
+	}
+	return result;
 }
 
 
