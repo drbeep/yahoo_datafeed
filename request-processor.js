@@ -460,6 +460,10 @@ RequestProcessor.prototype._prepareSymbolInfo = function (symbolName) {
 	if (logoUrls) {
 		result.logo_urls = logoUrls;
 	}
+	var exchangeLogo = logos.getExchangeLogoUrl(symbolInfo.exchange);
+	if (exchangeLogo) {
+		result.exchange_logo = exchangeLogo;
+	}
 
 	return result;
 };
