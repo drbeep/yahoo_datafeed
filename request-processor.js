@@ -656,6 +656,10 @@ RequestProcessor.prototype._sendNews = function (symbol, response) {
 	proxyRequest(https, options, response);
 };
 
+RequestProcessor.prototype._sendTVNews = function (response) {
+	proxyRequest(https, 'https://www.tradingview.com/key-events/feed/', response);
+};
+
 RequestProcessor.prototype._sendFuturesmag = function (response) {
 	var options = {
 		host: "www.oilprice.com",
@@ -693,6 +697,9 @@ RequestProcessor.prototype.processRequest = function (action, query, response) {
 		}
 		else if (action === "/news") {
 			this._sendNews(query["symbol"], response);
+		}
+		else if (action === "/tv_news") {
+			this._sendTVNews(response);
 		}
 		else if (action === "/futuresmag") {
 			this._sendFuturesmag(response);
